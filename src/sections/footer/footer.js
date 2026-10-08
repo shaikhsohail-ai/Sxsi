@@ -1,0 +1,2 @@
+/** footer. */
+export function init() {}

@@ -1,0 +1,300 @@
+/* ==========================================================================
+   Shared components — the SXSI visual vocabulary.
+   ========================================================================== */
+
+/* ---- Layout -------------------------------------------------------------- */
+.container {
+  width: 100%;
+  max-width: var(--maxw);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.section {
+  position: relative;
+  padding-block: var(--section-pad);
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- Type ---------------------------------------------------------------- */
+.display,
+.h1,
+.h2,
+.h3 {
+  font-family: var(--font-display);
+  font-stretch: var(--display-stretch);
+  font-weight: var(--display-weight);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-display);
+  line-height: var(--lh-display);
+  text-wrap: balance;
+}
+
+.display {
+  font-size: var(--fs-mega);
+  font-weight: 700;
+  line-height: 0.86;
+}
+
+.h1 {
+  font-size: var(--fs-h1);
+}
+
+.h2 {
+  font-size: var(--fs-h2);
+}
+
+.h3 {
+  font-size: var(--fs-h3);
+  line-height: var(--lh-tight);
+}
+
+.lead {
+  font-size: var(--fs-lead);
+  line-height: 1.5;
+  color: var(--c-text-dim);
+  max-width: 46ch;
+  text-wrap: pretty;
+}
+
+.body-copy {
+  color: var(--c-text-dim);
+  max-width: 62ch;
+  text-wrap: pretty;
+}
+
+/* Mono uppercase label, e.g. "// 02 — MISSION" */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--c-text-dim);
+}
+
+.eyebrow::before {
+  content: '';
+  width: 28px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+.eyebrow--plain::before {
+  content: none;
+}
+
+/* Telemetry readouts */
+.hud {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--c-text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text);
+  letter-spacing: 0.04em;
+}
+
+.text-atmo {
+  color: var(--c-atmo);
+}
+
+.text-ignite {
+  color: var(--c-ignite);
+}
+
+/* ---- Buttons (outlined, aerospace) --------------------------------------- */
+.btn {
+  --btn-fg: var(--c-text);
+  --btn-bg: transparent;
+  --btn-fill: var(--c-text);
+  --btn-fill-fg: var(--c-void);
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9em;
+  min-height: 52px;
+  padding: 0 30px;
+  border: 1.5px solid var(--btn-fg);
+  border-radius: var(--radius);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font-family: var(--font-display);
+  font-stretch: 112%;
+  font-weight: 650;
+  font-size: 0.86rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-decoration: none;
+  overflow: hidden;
+  cursor: pointer;
+  transition: color 0.45s var(--ease-out), border-color 0.45s var(--ease-out);
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--btn-fill);
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 0.5s var(--ease-out);
+}
+
+.btn:hover,
+.btn:focus-visible {
+  color: var(--btn-fill-fg);
+}
+
+.btn:hover::before,
+.btn:focus-visible::before {
+  transform: scaleY(1);
+}
+
+.btn--solid {
+  --btn-bg: var(--c-text);
+  --btn-fg: var(--c-void);
+  --btn-fill: var(--c-atmo);
+  --btn-fill-fg: var(--c-void);
+  border-color: var(--c-text);
+}
+
+.btn--solid:hover,
+.btn--solid:focus-visible {
+  border-color: var(--c-atmo);
+}
+
+.btn--ignite {
+  --btn-fg: var(--c-ignite);
+  --btn-fill: var(--c-ignite);
+  --btn-fill-fg: var(--c-void);
+}
+
+.btn--sm {
+  min-height: 40px;
+  padding: 0 18px;
+  font-size: 0.74rem;
+}
+
+.btn[disabled],
+.btn[aria-disabled='true'] {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.btn .btn__arrow {
+  width: 1.1em;
+  height: 1.1em;
+  transition: transform 0.45s var(--ease-out);
+}
+
+.btn:hover .btn__arrow,
+.btn:focus-visible .btn__arrow {
+  transform: translateX(4px);
+}
+
+/* ---- Panels with HUD corner ticks ---------------------------------------- */
+.panel {
+  position: relative;
+  background: var(--c-panel);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Corner brackets: add class `ticks` to any positioned element */
+.ticks {
+  --tick: 10px;
+  --tick-color: var(--c-line-strong);
+  background-image:
+    linear-gradient(var(--tick-color), var(--tick-color)),
+    linear-gradient(var(--tick-color), var(--tick-color)),
+    linear-gradient(var(--tick-color), var(--tick-color)),
+    linear-gradient(var(--tick-color), var(--tick-color)),
+    linear-gradient(var(--tick-color), var(--tick-color)),
+    linear-gradient(var(--tick-color), var(--tick-color)),
+    linear-gradient(var(--tick-color), var(--tick-color)),
+    linear-gradient(var(--tick-color), var(--tick-color));
+  background-repeat: no-repeat;
+  background-size:
+    var(--tick) 1px, 1px var(--tick),
+    var(--tick) 1px, 1px var(--tick),
+    var(--tick) 1px, 1px var(--tick),
+    var(--tick) 1px, 1px var(--tick);
+  background-position:
+    top left, top left,
+    top right, top right,
+    bottom left, bottom left,
+    bottom right, bottom right;
+}
+
+/* ---- Status pill: <span class="status status--live">LIVE</span> --------- */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--c-text-dim);
+}
+
+.status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c-ok);
+  box-shadow: 0 0 10px var(--c-ok);
+  animation: sxsi-pulse 2.4s ease-in-out infinite;
+}
+
+.status--live::before {
+  background: var(--c-ignite);
+  box-shadow: 0 0 10px var(--c-ignite);
+}
+
+.status--idle::before {
+  background: var(--c-text-faint);
+  box-shadow: none;
+  animation: none;
+}
+
+@keyframes sxsi-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* ---- Hairline divider ---------------------------------------------------- */
+.hairline {
+  height: 1px;
+  border: 0;
+  margin: 0;
+  background: linear-gradient(90deg, transparent, var(--c-line-strong) 20%, var(--c-line-strong) 80%, transparent);
+}

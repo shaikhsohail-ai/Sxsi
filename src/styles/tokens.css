@@ -1,0 +1,88 @@
+/* ==========================================================================
+   SXSI design tokens. Every section builds on these — don't hard-code colors,
+   fonts or easings elsewhere.
+   ========================================================================== */
+:root {
+  /* ---- Color: space ------------------------------------------------------ */
+  --c-void: #000000;            /* page background — pure black */
+  --c-space: #03050a;           /* raised black */
+  --c-deep: #070b14;            /* deep navy-black panels */
+  --c-panel: rgba(255, 255, 255, 0.035);
+  --c-panel-strong: rgba(255, 255, 255, 0.07);
+  --c-line: rgba(255, 255, 255, 0.12);
+  --c-line-strong: rgba(255, 255, 255, 0.28);
+
+  /* ---- Color: type ------------------------------------------------------- */
+  --c-text: #f4f6fb;
+  --c-text-dim: rgba(244, 246, 251, 0.68);
+  --c-text-faint: rgba(244, 246, 251, 0.42);
+
+  /* ---- Color: signal ----------------------------------------------------- */
+  --c-atmo: #6fc3ff;            /* atmospheric limb blue — glow, focus, interactive */
+  --c-atmo-deep: #1f6bff;       /* deep scattering blue */
+  --c-ion: #c7ecff;             /* pale ionised highlight */
+  --c-ignite: #ff6b2c;          /* engine fire — LIVE, countdowns, critical moments only */
+  --c-ignite-soft: #ffb46b;     /* plume core / sunrise */
+  --c-ok: #4dffa8;              /* nominal status dots only */
+  --c-warn: #ffd166;
+
+  --glow-atmo: 0 0 24px rgba(111, 195, 255, 0.45);
+  --glow-ignite: 0 0 28px rgba(255, 107, 44, 0.55);
+
+  /* ---- Type families ----------------------------------------------------- */
+  --font-display: 'Saira Variable', 'Saira', 'Eurostile', 'Arial Narrow', system-ui, sans-serif;
+  --font-body: 'Inter Tight Variable', 'Inter Tight', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* Display = Saira expanded, uppercase */
+  --display-stretch: 118%;
+  --display-weight: 650;
+
+  /* ---- Type scale (fluid) ------------------------------------------------ */
+  --fs-mega: clamp(3.4rem, 12vw, 12.5rem);
+  --fs-h1: clamp(2.5rem, 6.6vw, 7rem);
+  --fs-h2: clamp(2rem, 4.4vw, 4.6rem);
+  --fs-h3: clamp(1.3rem, 2vw, 1.9rem);
+  --fs-lead: clamp(1.08rem, 1.35vw, 1.38rem);
+  --fs-body: 1.0625rem;
+  --fs-small: 0.875rem;
+  --fs-micro: 0.72rem;
+
+  --lh-display: 0.92;
+  --lh-tight: 1.1;
+  --lh-body: 1.6;
+
+  --tracking-display: 0.02em;
+  --tracking-label: 0.22em;
+  --tracking-wide: 0.12em;
+
+  /* ---- Space & layout ---------------------------------------------------- */
+  --gutter: clamp(16px, 4.2vw, 72px);
+  --maxw: 1480px;
+  --section-pad: clamp(96px, 16vh, 200px);
+  --nav-h: 72px;
+  --radius: 2px;                /* aerospace = near-square corners */
+  --radius-lg: 6px;
+
+  /* ---- Motion ------------------------------------------------------------ */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);       /* expo-ish out */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 0.2s;
+  --dur: 0.6s;
+  --dur-slow: 1.2s;
+
+  /* ---- Layers ------------------------------------------------------------ */
+  --z-content: 1;
+  --z-hud: 10;
+  --z-nav: 100;
+  --z-menu: 200;
+  --z-boot: 1000;
+}
+
+@media (max-width: 720px) {
+  :root {
+    --nav-h: 60px;
+    --fs-body: 1rem;
+  }
+}

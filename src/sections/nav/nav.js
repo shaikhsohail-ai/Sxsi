@@ -1,0 +1,2 @@
+/** nav. */
+export function init() {}
