@@ -92,7 +92,7 @@
     </div>
 
     <div class="s-fleet__hudbar hud" aria-hidden="true">
-      <span class="s-fleet__hudbar-item">Fleet registry</span>
+      <span class="s-fleet__hudbar-item">Fleet registry<span class="s-fleet__hudbar-scale">Relative scale <span>·</span> Illustrative</span></span>
       <span class="s-fleet__hudbar-item s-fleet__hudbar-count">
         <span class="hud-value" data-fleet-count>01</span><span class="s-fleet__hudbar-of">/ 04</span>
       </span>
@@ -136,6 +136,7 @@
         </button>
       </div>
       <div class="s-fleet__rail" aria-hidden="true"><span class="s-fleet__rail-fill" data-fleet-rail></span></div>
+      <!-- Scale caption under the line-up; tall wide screens show it in the HUD bar instead -->
       <p class="s-fleet__selector-label hud" aria-hidden="true">Relative scale <span>·</span> Illustrative</p>
     </div>
 
@@ -143,126 +144,134 @@
     <div class="s-fleet__panels" data-fleet-panels>
       <div class="s-fleet__panel" id="fleet-nova" data-fleet-panel="0" data-vehicle="nova">
         <p class="s-fleet__index" aria-hidden="true"><span class="s-fleet__index-num" data-fleet-part="index">01</span></p>
-        <div class="s-fleet__copy">
-          <p class="s-fleet__kicker hud" data-fleet-part="fade">Vehicle 01 <span aria-hidden="true">·</span> Low orbit</p>
-          <h3 class="s-fleet__name" id="fleet-name-nova" data-fleet-part="name">Nova</h3>
-          <p class="s-fleet__role" data-fleet-part="fade">Light enough to fly anywhere.</p>
-          <p class="s-fleet__desc body-copy" data-fleet-part="fade">
-            The compact vehicle of the fleet, designed to run on phones, laptops and the edge — where every millisecond and every
-            watt counts. Small airframe, fast turnaround, built to launch often.
-          </p>
-        </div>
-        <div class="s-fleet__spec" data-fleet-part="spec">
-          <p class="s-fleet__spec-title hud"><span>Spec sheet</span><span>SX-01 · Nova</span></p>
-          <dl class="s-fleet__spec-list">
-            <div class="s-fleet__spec-row"><dt>Class</dt><dd>Compact</dd></div>
-            <div class="s-fleet__spec-row"><dt>Context</dt><dd>Standard</dd></div>
-            <div class="s-fleet__spec-row"><dt>Modalities</dt><dd>Text · Vision</dd></div>
-            <div class="s-fleet__spec-row"><dt>Autonomy</dt><dd>Assist</dd></div>
-            <div class="s-fleet__spec-row"><dt>Latency class</dt><dd>Real-time</dd></div>
-            <div class="s-fleet__spec-row s-fleet__spec-row--status">
-              <dt>Status</dt>
-              <dd><span class="status">In development</span></dd>
-            </div>
-          </dl>
+        <div class="s-fleet__body">
+          <div class="s-fleet__copy">
+            <p class="s-fleet__kicker hud" data-fleet-part="fade">Vehicle 01 <span aria-hidden="true">·</span> Low orbit</p>
+            <h3 class="s-fleet__name" id="fleet-name-nova" data-fleet-part="name">Nova</h3>
+            <p class="s-fleet__role" data-fleet-part="fade">Light enough to fly anywhere.</p>
+            <p class="s-fleet__desc body-copy" data-fleet-part="fade">
+              The compact vehicle of the fleet, designed to run on phones, laptops and the edge — where every millisecond and every
+              watt counts. Small airframe, fast turnaround, built to launch often.
+            </p>
+          </div>
+          <div class="s-fleet__spec" data-fleet-part="spec">
+            <p class="s-fleet__spec-title hud"><span>Spec sheet</span><span>SX-01 · Nova</span></p>
+            <dl class="s-fleet__spec-list">
+              <div class="s-fleet__spec-row"><dt>Class</dt><dd>Compact</dd></div>
+              <div class="s-fleet__spec-row"><dt>Context</dt><dd>Standard</dd></div>
+              <div class="s-fleet__spec-row"><dt>Modalities</dt><dd>Text · Vision</dd></div>
+              <div class="s-fleet__spec-row"><dt>Autonomy</dt><dd>Assist</dd></div>
+              <div class="s-fleet__spec-row"><dt>Latency class</dt><dd>Real-time</dd></div>
+              <div class="s-fleet__spec-row s-fleet__spec-row--status">
+                <dt>Status</dt>
+                <dd><span class="status">In development</span></dd>
+              </div>
+            </dl>
+          </div>
         </div>
       </div>
 
       <div class="s-fleet__panel" id="fleet-vector" data-fleet-panel="1" data-vehicle="vector">
         <p class="s-fleet__index" aria-hidden="true"><span class="s-fleet__index-num" data-fleet-part="index">02</span></p>
-        <div class="s-fleet__copy">
-          <p class="s-fleet__kicker hud" data-fleet-part="fade">Vehicle 02 <span aria-hidden="true">·</span> Transfer orbit</p>
-          <h3 class="s-fleet__name" id="fleet-name-vector" data-fleet-part="name">Vector</h3>
-          <p class="s-fleet__role" data-fleet-part="fade">Intelligence with a heading.</p>
-          <p class="s-fleet__desc body-copy" data-fleet-part="fade">
-            An agentic vehicle being designed to plan, use tools and carry multi-step tasks through to completion — with a human in
-            the loop for every critical burn. Thought, given direction.
-          </p>
-        </div>
-        <div class="s-fleet__spec" data-fleet-part="spec">
-          <p class="s-fleet__spec-title hud"><span>Spec sheet</span><span>SX-02 · Vector</span></p>
-          <dl class="s-fleet__spec-list">
-            <div class="s-fleet__spec-row"><dt>Class</dt><dd>Agentic</dd></div>
-            <div class="s-fleet__spec-row"><dt>Context</dt><dd>Long</dd></div>
-            <div class="s-fleet__spec-row"><dt>Modalities</dt><dd>Text · Vision · Tools</dd></div>
-            <div class="s-fleet__spec-row"><dt>Autonomy</dt><dd>Supervised</dd></div>
-            <div class="s-fleet__spec-row"><dt>Latency class</dt><dd>Interactive</dd></div>
-            <div class="s-fleet__spec-row s-fleet__spec-row--status">
-              <dt>Status</dt>
-              <dd><span class="status status--idle">Planned</span></dd>
-            </div>
-          </dl>
+        <div class="s-fleet__body">
+          <div class="s-fleet__copy">
+            <p class="s-fleet__kicker hud" data-fleet-part="fade">Vehicle 02 <span aria-hidden="true">·</span> Transfer orbit</p>
+            <h3 class="s-fleet__name" id="fleet-name-vector" data-fleet-part="name">Vector</h3>
+            <p class="s-fleet__role" data-fleet-part="fade">Intelligence with a heading.</p>
+            <p class="s-fleet__desc body-copy" data-fleet-part="fade">
+              An agentic vehicle being designed to plan, use tools and carry multi-step tasks through to completion — with a human in
+              the loop for every critical burn. Thought, given direction.
+            </p>
+          </div>
+          <div class="s-fleet__spec" data-fleet-part="spec">
+            <p class="s-fleet__spec-title hud"><span>Spec sheet</span><span>SX-02 · Vector</span></p>
+            <dl class="s-fleet__spec-list">
+              <div class="s-fleet__spec-row"><dt>Class</dt><dd>Agentic</dd></div>
+              <div class="s-fleet__spec-row"><dt>Context</dt><dd>Long</dd></div>
+              <div class="s-fleet__spec-row"><dt>Modalities</dt><dd>Text · Vision · Tools</dd></div>
+              <div class="s-fleet__spec-row"><dt>Autonomy</dt><dd>Supervised</dd></div>
+              <div class="s-fleet__spec-row"><dt>Latency class</dt><dd>Interactive</dd></div>
+              <div class="s-fleet__spec-row s-fleet__spec-row--status">
+                <dt>Status</dt>
+                <dd><span class="status status--idle">Planned</span></dd>
+              </div>
+            </dl>
+          </div>
         </div>
       </div>
 
       <div class="s-fleet__panel" id="fleet-apogee" data-fleet-panel="2" data-vehicle="apogee">
         <p class="s-fleet__index" aria-hidden="true"><span class="s-fleet__index-num" data-fleet-part="index">03</span></p>
-        <div class="s-fleet__copy">
-          <p class="s-fleet__kicker hud" data-fleet-part="fade">Vehicle 03 <span aria-hidden="true">·</span> High orbit</p>
-          <h3 class="s-fleet__name" id="fleet-name-apogee" data-fleet-part="name">Apogee</h3>
-          <p class="s-fleet__role" data-fleet-part="fade">Frontier reasoning at the highest point.</p>
-          <p class="s-fleet__desc body-copy" data-fleet-part="fade">
-            Our planned flagship: a frontier reasoning system for the hardest problems in science, engineering and code. Built to
-            take its time when it matters — and to show its work when it lands.
-          </p>
-        </div>
-        <div class="s-fleet__spec" data-fleet-part="spec">
-          <p class="s-fleet__spec-title hud"><span>Spec sheet</span><span>SX-03 · Apogee</span></p>
-          <dl class="s-fleet__spec-list">
-            <div class="s-fleet__spec-row"><dt>Class</dt><dd>Frontier</dd></div>
-            <div class="s-fleet__spec-row"><dt>Context</dt><dd>Extended</dd></div>
-            <div class="s-fleet__spec-row"><dt>Modalities</dt><dd>Text · Vision · Audio · Code</dd></div>
-            <div class="s-fleet__spec-row"><dt>Autonomy</dt><dd>Long-horizon</dd></div>
-            <div class="s-fleet__spec-row"><dt>Latency class</dt><dd>Deliberate</dd></div>
-            <div class="s-fleet__spec-row s-fleet__spec-row--status">
-              <dt>Status</dt>
-              <dd><span class="status status--idle">Planned</span></dd>
-            </div>
-          </dl>
+        <div class="s-fleet__body">
+          <div class="s-fleet__copy">
+            <p class="s-fleet__kicker hud" data-fleet-part="fade">Vehicle 03 <span aria-hidden="true">·</span> High orbit</p>
+            <h3 class="s-fleet__name" id="fleet-name-apogee" data-fleet-part="name">Apogee</h3>
+            <p class="s-fleet__role" data-fleet-part="fade">Frontier reasoning at the highest point.</p>
+            <p class="s-fleet__desc body-copy" data-fleet-part="fade">
+              Our planned flagship: a frontier reasoning system for the hardest problems in science, engineering and code. Built to
+              take its time when it matters — and to show its work when it lands.
+            </p>
+          </div>
+          <div class="s-fleet__spec" data-fleet-part="spec">
+            <p class="s-fleet__spec-title hud"><span>Spec sheet</span><span>SX-03 · Apogee</span></p>
+            <dl class="s-fleet__spec-list">
+              <div class="s-fleet__spec-row"><dt>Class</dt><dd>Frontier</dd></div>
+              <div class="s-fleet__spec-row"><dt>Context</dt><dd>Extended</dd></div>
+              <div class="s-fleet__spec-row"><dt>Modalities</dt><dd>Text · Vision · Audio · Code</dd></div>
+              <div class="s-fleet__spec-row"><dt>Autonomy</dt><dd>Long-horizon</dd></div>
+              <div class="s-fleet__spec-row"><dt>Latency class</dt><dd>Deliberate</dd></div>
+              <div class="s-fleet__spec-row s-fleet__spec-row--status">
+                <dt>Status</dt>
+                <dd><span class="status status--idle">Planned</span></dd>
+              </div>
+            </dl>
+          </div>
         </div>
       </div>
 
       <div class="s-fleet__panel s-fleet__panel--classified" id="fleet-zenith" data-fleet-panel="3" data-vehicle="zenith">
         <p class="s-fleet__index" aria-hidden="true"><span class="s-fleet__index-num" data-fleet-part="index">04</span></p>
-        <div class="s-fleet__copy">
-          <p class="s-fleet__kicker hud" data-fleet-part="fade">
-            Vehicle 04 <span aria-hidden="true">·</span> Beyond orbit <span aria-hidden="true">·</span>
-            <span class="s-fleet__kicker-hot">Classified</span>
-          </p>
-          <h3 class="s-fleet__name" id="fleet-name-zenith" data-fleet-part="name">Zenith</h3>
-          <p class="s-fleet__role" data-fleet-part="fade">Beyond the edge of the map.</p>
-          <p class="s-fleet__desc body-copy" data-fleet-part="fade">
-            Long-range research toward superintelligence — the destination the rest of the fleet is built to reach. Safety first,
-            then altitude. Flight profile
-            <span class="s-fleet__bar s-fleet__bar--inline"><span class="sr-only">redacted</span></span>. Further details are
-            classified.
-          </p>
-        </div>
-        <div class="s-fleet__spec" data-fleet-part="spec">
-          <p class="s-fleet__spec-title hud"><span>Spec sheet</span><span>SX-04 · Zenith</span></p>
-          <dl class="s-fleet__spec-list">
-            <div class="s-fleet__spec-row"><dt>Class</dt><dd>Research</dd></div>
-            <div class="s-fleet__spec-row">
-              <dt>Context</dt>
-              <dd><span class="s-fleet__bar"><span class="sr-only">Redacted</span></span></dd>
-            </div>
-            <div class="s-fleet__spec-row">
-              <dt>Modalities</dt>
-              <dd><span class="s-fleet__bar s-fleet__bar--long"><span class="sr-only">Redacted</span></span></dd>
-            </div>
-            <div class="s-fleet__spec-row">
-              <dt>Autonomy</dt>
-              <dd><span class="s-fleet__bar"><span class="sr-only">Redacted</span></span></dd>
-            </div>
-            <div class="s-fleet__spec-row">
-              <dt>Latency class</dt>
-              <dd><span class="s-fleet__bar s-fleet__bar--short"><span class="sr-only">Redacted</span></span></dd>
-            </div>
-            <div class="s-fleet__spec-row s-fleet__spec-row--status">
-              <dt>Status</dt>
-              <dd><span class="status status--live">Classified</span></dd>
-            </div>
-          </dl>
+        <div class="s-fleet__body">
+          <div class="s-fleet__copy">
+            <p class="s-fleet__kicker hud" data-fleet-part="fade">
+              Vehicle 04 <span aria-hidden="true">·</span> Beyond orbit <span aria-hidden="true">·</span>
+              <span class="s-fleet__kicker-hot">Classified</span>
+            </p>
+            <h3 class="s-fleet__name" id="fleet-name-zenith" data-fleet-part="name">Zenith</h3>
+            <p class="s-fleet__role" data-fleet-part="fade">Beyond the edge of the map.</p>
+            <p class="s-fleet__desc body-copy" data-fleet-part="fade">
+              Long-range research toward superintelligence — the destination the rest of the fleet is built to reach. Safety first,
+              then altitude. Flight profile
+              <span class="s-fleet__bar s-fleet__bar--inline"><span class="sr-only">redacted</span></span>. Further details are
+              classified.
+            </p>
+          </div>
+          <div class="s-fleet__spec" data-fleet-part="spec">
+            <p class="s-fleet__spec-title hud"><span>Spec sheet</span><span>SX-04 · Zenith</span></p>
+            <dl class="s-fleet__spec-list">
+              <div class="s-fleet__spec-row"><dt>Class</dt><dd>Research</dd></div>
+              <div class="s-fleet__spec-row">
+                <dt>Context</dt>
+                <dd><span class="s-fleet__bar"><span class="sr-only">Redacted</span></span></dd>
+              </div>
+              <div class="s-fleet__spec-row">
+                <dt>Modalities</dt>
+                <dd><span class="s-fleet__bar s-fleet__bar--long"><span class="sr-only">Redacted</span></span></dd>
+              </div>
+              <div class="s-fleet__spec-row">
+                <dt>Autonomy</dt>
+                <dd><span class="s-fleet__bar"><span class="sr-only">Redacted</span></span></dd>
+              </div>
+              <div class="s-fleet__spec-row">
+                <dt>Latency class</dt>
+                <dd><span class="s-fleet__bar s-fleet__bar--short"><span class="sr-only">Redacted</span></span></dd>
+              </div>
+              <div class="s-fleet__spec-row s-fleet__spec-row--status">
+                <dt>Status</dt>
+                <dd><span class="status status--live">Classified</span></dd>
+              </div>
+            </dl>
+          </div>
         </div>
       </div>
     </div>

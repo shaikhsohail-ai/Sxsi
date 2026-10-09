@@ -408,7 +408,8 @@ function revealHead(root) {
   gsap.set(items, { opacity: 0, y: 24 })
   ScrollTrigger.create({
     trigger: head,
-    start: 'top 80%',
+    // Early, so the black under the departing ascent stage fills in quickly
+    start: 'top 90%',
     once: true,
     onEnter: () => {
       gsap.to(split.chars, { yPercent: 0, duration: 1.5, ease: 'expo.out', stagger: 0.04 })
