@@ -9,10 +9,10 @@
  * with an elevation drawing. Flight mode is only switched on when motion is
  * allowed and WebGL is available.
  */
-import { gsap, ScrollTrigger } from '../../lib/motion.js'
+import { gsap, ScrollTrigger, scrollToTarget } from '../../lib/motion.js'
 import { SplitText } from 'gsap/SplitText'
 import { reducedMotion, hasWebGL, tier, dpr } from '../../lib/quality.js'
-import { createRenderLoop } from '../../lib/visibility.js'
+import { createRenderLoop, observeVisibility } from '../../lib/visibility.js'
 import { emit } from '../../lib/bus.js'
 import { $, $$, clamp, formatNumber } from '../../lib/dom.js'
 import { BEATS, EVENTS, telemetry, formatClock, missionTime } from './profile.js'
@@ -20,7 +20,9 @@ import { BEATS, EVENTS, telemetry, formatClock, missionTime } from './profile.js
 gsap.registerPlugin(SplitText)
 
 /** Scroll length of the pinned flight, in viewport heights. */
-const LENGTH = { desktop: 5.5, mobile: 3.5 }
+const LENGTH = { desktop: 4.75, mobile: 3.5 }
+/** Phones get the shorter flight (matches the CSS phone breakpoint). */
+const MOBILE_QUERY = '(max-width: 720px)'
 
 /** Sound cues fired when a beat is crossed going forward. */
 const CUES = [
@@ -75,51 +77,82 @@ export function init() {
     return
   }
 
+  const stage = $('.s-ascent__stage', section)
   const canvas = $('.s-ascent__canvas', section)
+  const events = $('.s-ascent__events', section)
+  const hudTop = $('.s-ascent__hud-top', section)
   section.classList.add('is-flight')
 
-  // The scene module pulls in three.js; load it without blocking the pin set-up.
-  let scene = null
-  import('./scene.js')
-    .then(({ createAscentScene }) => {
-      scene = createAscentScene(canvas, { tier, dpr })
-      scene.resize(section.clientWidth, section.clientHeight)
-      scene.warm()
-    })
-    .catch((error) => {
-      console.error('[sxsi] ascent scene unavailable', error)
-      fallBackToStatic()
-    })
-
   // ---- pin + scrub -----------------------------------------------------------------
+  // One pin for every width: only its length follows the phone breakpoint, and
+  // `invalidateOnRefresh` re-measures it on resize. (A per-breakpoint pin would be
+  // torn down and rebuilt on every phone rotation, at the end of ScrollTrigger's order.)
   let target = 0
   let progress = 0
-  const mm = gsap.matchMedia()
-  mm.add({ mobile: '(max-width: 720px)', desktop: '(min-width: 721px)' }, (context) => {
-    const length = context.conditions.mobile ? LENGTH.mobile : LENGTH.desktop
-    ScrollTrigger.create({
-      trigger: section,
-      start: 'top top',
-      end: () => `+=${Math.round(window.innerHeight * length)}`,
-      pin: true,
-      pinSpacing: true,
-      anticipatePin: 1,
-      invalidateOnRefresh: true,
-      onUpdate: (self) => {
-        target = self.progress
-      },
-      onRefresh: (self) => {
-        target = self.progress
-      },
-    })
+  const mobile = window.matchMedia(MOBILE_QUERY)
+  const pin = ScrollTrigger.create({
+    trigger: section,
+    start: 'top top',
+    end: () => `+=${Math.round(window.innerHeight * (mobile.matches ? LENGTH.mobile : LENGTH.desktop))}`,
+    pin: true,
+    pinSpacing: true,
+    anticipatePin: 1,
+    invalidateOnRefresh: true,
+    onUpdate: (self) => {
+      target = self.progress
+    },
+    onRefresh: (self) => {
+      target = self.progress
+    },
   })
 
   // ---- HUD -------------------------------------------------------------------------
   const hud = createHud(section)
   const story = createStory(section)
 
+  // ---- scene (deferred) --------------------------------------------------------------
+  // The WebGL scene is heavy to stand up — a full-viewport context, large rocket
+  // textures, a shader warm-up — so only its module is fetched now. The context is
+  // created as the visitor approaches, and never ahead of the hero's first frame.
+  let scene = null
+  let fellBack = false
+  const sceneModule = import('./scene.js')
+  sceneModule.catch(() => {}) // reported when the scene is needed
+  const stopApproach = whenApproaching(section, () => {
+    sceneModule
+      .then(({ createAscentScene }) => {
+        if (fellBack) return
+        scene = createAscentScene(canvas, { tier, dpr })
+        canvas.addEventListener('webglcontextlost', onContextLost, { once: true })
+        resizeScene()
+        // Paint the current moment of the flight once the shaders are ready, so the
+        // stage is never blank when it scrolls in (the render loop takes over from there).
+        Promise.resolve(scene.warm()).then(() => {
+          if (!scene || loop.running) return
+          progress = target
+          scene.frame(clamp(progress), performance.now() / 1000, 0)
+        })
+      })
+      .catch((error) => {
+        console.error('[sxsi] ascent scene unavailable', error)
+        fallBackToStatic()
+      })
+  })
+
+  function onContextLost(event) {
+    event.preventDefault()
+    fallBackToStatic()
+  }
+
   // ---- resize ------------------------------------------------------------------------
-  const ro = new ResizeObserver(() => scene?.resize(section.clientWidth, section.clientHeight))
+  function resizeScene() {
+    if (!scene) return
+    // On very wide screens the copy sits on the centred content grid rather than the
+    // HUD's viewport gutter: the scene keeps its cloud-free zone under the copy.
+    const inset = events && hudTop ? events.getBoundingClientRect().left - hudTop.getBoundingClientRect().left : 0
+    scene.resize(section.clientWidth, section.clientHeight, Math.max(0, inset))
+  }
+  const ro = new ResizeObserver(resizeScene)
   ro.observe(section)
 
   // ---- adaptive resolution -----------------------------------------------------------------
@@ -158,7 +191,15 @@ export function init() {
 
   // ---- render loop ---------------------------------------------------------------------
   let lastCueP = 0
+  let lastExit = ''
   const loop = createRenderLoop(section, (time, dt) => {
+    // Once the pin releases, the stage's bottom edge dissolves into the page as it scrolls away.
+    const exit = clamp((window.scrollY - pin.end) / (window.innerHeight * 0.15)).toFixed(3)
+    if (exit !== lastExit) {
+      stage.style.setProperty('--ascent-exit', exit)
+      lastExit = exit
+    }
+
     // Exponential follow on top of Lenis: weighty, never laggy. Large jumps
     // (first frame after a mid-section reload, deep links) snap instead of replaying.
     const k = 1 - Math.exp(-dt * 9)
@@ -191,15 +232,85 @@ export function init() {
     }
   }
 
+  /**
+   * The scene failed to load, or its WebGL context was lost: switch to the static
+   * timeline. The pin goes too, so keep the visitor on the same part of the page.
+   */
   function fallBackToStatic() {
+    if (fellBack) return
+    fellBack = true
+    stopApproach()
     loop.destroy()
     ro.disconnect()
-    mm.revert()
+    canvas.removeEventListener('webglcontextlost', onContextLost)
+
+    const y = window.scrollY
+    const { start, end } = pin
+    const flown = clamp((y - start) / Math.max(1, end - start))
+    pin.kill()
     story.destroy()
+    try {
+      scene?.dispose()
+    } catch {
+      /* the context is already gone */
+    }
+    scene = null
     section.classList.remove('is-flight')
     section.classList.add('is-static')
     ScrollTrigger.refresh()
+
+    if (y <= start) return
+    const top = section.getBoundingClientRect().top + window.scrollY
+    const removed = end - start + window.innerHeight - section.offsetHeight
+    // Mid-flight: the same share of the way through the timeline. Below it: the same content.
+    const next = y < end ? top + flown * Math.max(0, section.offsetHeight - window.innerHeight) : y - removed
+    scrollToTarget(Math.max(0, Math.round(next)), { immediate: true })
   }
+}
+
+/**
+ * Calls `run` once `el` is within ~1.5 viewports — and, while the hero is on
+ * screen, not before it has painted its first frame. Returns a cancel function.
+ */
+function whenApproaching(el, run) {
+  let near = false
+  let cancelled = false
+  let stop = null
+  const go = () => {
+    if (near) return
+    near = true
+    stop?.()
+    heroSettled().then(() => {
+      const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1))
+      if (!cancelled) idle(() => cancelled || run(), { timeout: 300 })
+    })
+  }
+  stop = observeVisibility(el, (visible) => visible && go(), { rootMargin: '150% 0px' })
+  if (near) stop()
+  return () => {
+    cancelled = true
+    stop?.()
+  }
+}
+
+/** Resolves once the hero has a first frame (WebGL or its fallback), or is off screen. */
+function heroSettled() {
+  const hero = document.getElementById('hero')
+  const painted = () => !hero || hero.classList.contains('is-webgl') || hero.classList.contains('is-fallback')
+  if (painted()) return Promise.resolve()
+  return new Promise((resolve) => {
+    let stop = null
+    const mo = new MutationObserver(() => painted() && settle())
+    const timer = setTimeout(() => settle(), 4000) // never wait on a stalled hero
+    function settle() {
+      mo.disconnect()
+      stop?.()
+      clearTimeout(timer)
+      resolve()
+    }
+    mo.observe(hero, { attributes: true, attributeFilter: ['class'] })
+    stop = observeVisibility(hero, (visible) => !visible && settle())
+  })
 }
 
 /* ---------------------------------------------------------------------------------- */

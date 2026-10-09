@@ -8,16 +8,20 @@
  */
 import { clamp } from '../../lib/dom.js'
 
-/** Scroll progress at which each beat happens. Tuned for pacing, not physics. */
+/**
+ * Scroll progress at which each beat happens. Tuned for pacing, not physics:
+ * every event card (liftoff, max-Q, MECO, stage sep, SECO, orbit) holds the
+ * screen for at least 0.12 of the flight, so no chapter passes in a wheel notch.
+ */
 export const BEATS = {
   ignition: 0.045, // T−3 s: engines light, hold-down
   liftoff: 0.065,
   maxq: 0.24,
-  meco: 0.4,
-  sep: 0.465,
-  ses: 0.515, // second-stage ignition
-  fairing: 0.575,
-  seco: 0.72,
+  meco: 0.36,
+  sep: 0.49,
+  ses: 0.53, // second-stage ignition
+  fairing: 0.58,
+  seco: 0.67,
   orbit: 0.815,
 }
 

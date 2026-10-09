@@ -1,22 +1,80 @@
 #!/usr/bin/env node
 /**
  * Generates the social share image (public/og.png, 1200×630) from the live
- * hero scene, plus PNG app icons from public/favicon.svg.
+ * hero scene, a lightweight progressive JPEG of it for link previews
+ * (public/og.jpg — what og:image points at), plus PNG app icons from
+ * public/favicon.svg.
  *
  *   npm run dev            # in another terminal
  *   node scripts/og.mjs --url http://127.0.0.1:5173/
+ *   node scripts/og.mjs --jpeg-only        # re-encode og.jpg from the existing og.png
+ *   node scripts/og.mjs --out /tmp/og      # write somewhere other than public/
+ *
+ * Why a JPEG: the photographic PNG is ~500 KB, and some preview consumers
+ * (WhatsApp at ~300 KB) skip or downscale images that large. The JPEG is
+ * re-encoded from the PNG (progressive, q85, 4:2:0) with Python + Pillow or
+ * ImageMagick, whichever is installed; without either it falls back to the
+ * browser's baseline JPEG encoder.
  */
 import { chromium } from 'playwright'
+import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 
 const argv = process.argv.slice(2)
-const urlArg = argv[argv.indexOf('--url') + 1]
-const url = new URL(argv.includes('--url') && urlArg ? urlArg : 'http://127.0.0.1:5173/')
+const option = (name) => {
+  const i = argv.indexOf(name)
+  return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : null
+}
+const url = new URL(option('--url') || 'http://127.0.0.1:5173/')
 url.searchParams.set('noboot', '1')
+const jpegOnly = argv.includes('--jpeg-only')
 
 const root = path.resolve(import.meta.dirname, '..')
 const publicDir = path.join(root, 'public')
+const outDir = path.resolve(option('--out') || publicDir)
+fs.mkdirSync(outDir, { recursive: true })
+
+const JPEG_QUALITY = 85
+const pngPath = path.join(outDir, 'og.png')
+const jpgPath = path.join(outDir, 'og.jpg')
+
+/** Re-encodes og.png as a progressive JPEG; returns the encoder used, or null. */
+function encodeJpeg(src, dest) {
+  const pillow = `
+import sys
+from PIL import Image
+Image.open(sys.argv[1]).convert('RGB').save(sys.argv[2], 'JPEG', quality=${JPEG_QUALITY}, progressive=True, optimize=True, subsampling=2)
+`
+  const encoders = [
+    ['Pillow', 'python3', ['-c', pillow, src, dest]],
+    ['ImageMagick', 'magick', [src, '-strip', '-interlace', 'Plane', '-sampling-factor', '4:2:0', '-quality', String(JPEG_QUALITY), dest]],
+    ['ImageMagick', 'convert', [src, '-strip', '-interlace', 'Plane', '-sampling-factor', '4:2:0', '-quality', String(JPEG_QUALITY), dest]],
+  ]
+  for (const [name, cmd, args] of encoders) {
+    const result = spawnSync(cmd, args, { stdio: 'ignore' })
+    if (result.status === 0 && fs.existsSync(dest)) return name
+  }
+  return null
+}
+
+const shortPath = (file) => (path.relative(root, file).startsWith('..') ? file : path.relative(root, file))
+const report = (file) => console.log(`wrote ${shortPath(file)} (${Math.round(fs.statSync(file).size / 1024)} KB)`)
+
+if (jpegOnly) {
+  if (!fs.existsSync(pngPath)) {
+    console.error(`no ${shortPath(pngPath)} to re-encode — run without --jpeg-only first`)
+    process.exit(1)
+  }
+  const encoder = encodeJpeg(pngPath, jpgPath)
+  if (!encoder) {
+    console.error('no JPEG encoder found (install Python + Pillow or ImageMagick, or run without --jpeg-only)')
+    process.exit(1)
+  }
+  report(jpgPath)
+  process.exit(0)
+}
+
 const logoSvg = fs.readFileSync(path.join(publicDir, 'logo.svg'), 'utf8')
 const faviconSvg = fs.readFileSync(path.join(publicDir, 'favicon.svg'), 'utf8')
 
@@ -33,6 +91,11 @@ const browser = await chromium.launch({
 {
   const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 })
   await page.goto(url.href, { waitUntil: 'networkidle', timeout: 90_000 })
+  // Wait for the hero scene (or its static fallback) rather than a fixed delay:
+  // software GL on a busy machine can take a while to show the first frame.
+  await page
+    .waitForFunction(() => document.querySelector('.s-hero')?.matches('.is-webgl, .is-fallback'), null, { timeout: 60_000 })
+    .catch(() => console.warn('hero scene not ready after 60 s — capturing anyway'))
   await page.waitForTimeout(4000)
 
   // Hide the live page UI, keep the hero's backdrop, lay our own type on top.
@@ -60,9 +123,15 @@ const browser = await chromium.launch({
     document.body.append(card)
   }, logoSvg)
   await page.waitForTimeout(600)
-  await page.screenshot({ path: path.join(publicDir, 'og.png') })
+  await page.screenshot({ path: pngPath })
+  report(pngPath)
+
+  if (!encodeJpeg(pngPath, jpgPath)) {
+    console.warn('no Pillow / ImageMagick: og.jpg falls back to a baseline (non-progressive) JPEG')
+    await page.screenshot({ path: jpgPath, type: 'jpeg', quality: JPEG_QUALITY })
+  }
+  report(jpgPath)
   await page.close()
-  console.log('wrote public/og.png')
 }
 
 // ---- App icons ----------------------------------------------------------------
@@ -78,9 +147,9 @@ for (const { file, size, scale } of icons) {
     background:#000">
     <img src="${dataUri}" style="width:${Math.round(size * scale)}px;height:${Math.round(size * scale)}px"></body></html>`)
   await page.waitForTimeout(200)
-  await page.screenshot({ path: path.join(publicDir, file) })
+  await page.screenshot({ path: path.join(outDir, file) })
   await page.close()
-  console.log(`wrote public/${file}`)
+  report(path.join(outDir, file))
 }
 
 await browser.close()

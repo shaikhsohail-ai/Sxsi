@@ -390,14 +390,18 @@ export function createAscentScene(canvas, { tier = 'high', dpr = 1 } = {}) {
   let aspect = 1
   let width = 1
   let height = 1
+  let copyShift = 0
 
-  function resize(w, h) {
+  /** `copyInset`: px the copy column sits right of the HUD gutter (centred content grid on very wide screens). */
+  function resize(w, h, copyInset = copyShift) {
     width = Math.max(1, w)
     height = Math.max(1, h)
+    copyShift = copyInset
     aspect = width / height
     layout = aspect >= 0.9 ? LAYOUTS.wide : LAYOUTS.tall
-    // copy sits left on wide screens, on top on tall ones
-    if (layout === LAYOUTS.wide) fgU.uClear.value.set(0, -0.42, -0.08, 1)
+    // copy sits left on wide screens, on top on tall ones: keep the near clouds off it
+    const shift = (2 * copyShift) / width
+    if (layout === LAYOUTS.wide) fgU.uClear.value.set(0, -0.42 + shift, -0.08 + shift, 1)
     else fgU.uClear.value.set(1, 0.2, 0.45, 0)
     renderer.setPixelRatio(pixelRatio * renderScale)
     renderer.setSize(width, height, false)
@@ -541,7 +545,7 @@ export function createAscentScene(canvas, { tier = 'high', dpr = 1 } = {}) {
 
     const u2 = plume2.material.uniforms
     u2.uPower.value = power2
-    u2.uShell.value = smooth(BEATS.ses + 0.01, BEATS.ses + 0.06, p) * (1 - smooth(BEATS.seco - 0.08, BEATS.seco, p))
+    u2.uShell.value = smooth(BEATS.ses + 0.01, BEATS.ses + 0.05, p) * (1 - smooth(BEATS.seco - 0.05, BEATS.seco, p))
     const len2 = 9.5 * (0.45 + 0.55 * power2)
     const wid2 = 10
     u2.uSize.value.set(wid2, len2)

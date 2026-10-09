@@ -20,7 +20,7 @@ export const NEXT_MISSION = {
 }
 
 /** Launch site "coordinates" used in HUD readouts (brand fiction). */
-export const COORDINATES = { lat: 28.4858, lon: -80.5444, label: '28.4858° N  80.5444° W' }
+export const COORDINATES = { lat: 31.4159, lon: -42.7183, label: '31.4159° N  42.7183° W' }
 
 /**
  * Optional waitlist endpoint. When set, the Join form POSTs JSON

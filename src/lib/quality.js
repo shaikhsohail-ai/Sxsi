@@ -35,8 +35,13 @@ let webglSupport
 export function hasWebGL() {
   if (webglSupport !== undefined) return webglSupport
   try {
+    // A detached, local canvas: nothing keeps it once this returns.
     const canvas = document.createElement('canvas')
-    webglSupport = Boolean(canvas.getContext('webgl2') || canvas.getContext('webgl'))
+    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl')
+    webglSupport = Boolean(gl)
+    // Only a probe: hand the context straight back (browsers cap live contexts,
+    // and software GL keeps paying for one that is never drawn to).
+    gl?.getExtension('WEBGL_lose_context')?.loseContext()
   } catch {
     webglSupport = false
   }

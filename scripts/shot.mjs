@@ -18,7 +18,7 @@
  *   --selector <css>    shoot across this element's scroll span (pin spacer aware)
  *   --steps <n>         number of evenly spaced shots across the selector span (default 4)
  *   --y <list>          comma separated absolute scroll positions
- *   --wait <ms>         wait after load (default 2500)
+ *   --wait <ms>         wait after every section has initialised (default 2500)
  *   --settle <ms>       wait after each scroll (default 1400)
  *   --reduced           emulate prefers-reduced-motion: reduce
  *   --boot              keep the boot sequence (don't append noboot=1)
@@ -83,6 +83,8 @@ page.on('requestfailed', (req) => logs.push(`[requestfailed] ${req.url()} — ${
 
 const t0 = Date.now()
 await page.goto(url.href, { waitUntil: 'networkidle', timeout: 90_000 })
+// Every section initialised (pins built, deep link landed) — slow software GL can take a while.
+await page.waitForFunction(() => window.__sxsi?.ready, null, { timeout: 60_000 }).catch(() => logs.push('[shot] sections not ready after 60 s'))
 await page.waitForTimeout(waitMs)
 
 const scrollTo = async (y) => {

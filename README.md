@@ -60,7 +60,7 @@ The build is a static folder (`dist/`), so it runs on any static host.
 ## Tooling
 
 - `npm run shot -- --url http://127.0.0.1:5173/ --selector '#ascent' --steps 6` takes headless screenshots across a section and prints console errors (see `scripts/shot.mjs` for options).
-- `node scripts/og.mjs` regenerates the social share image and app icons from the live hero.
+- `node scripts/og.mjs` regenerates the social share image (`public/og.png`, plus the lightweight progressive `public/og.jpg` that `og:image` / `twitter:image` point at) and app icons from the live hero. `--jpeg-only` just re-encodes `og.jpg` from the existing PNG.
 
 ## Accessibility and performance
 

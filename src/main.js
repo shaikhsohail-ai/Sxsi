@@ -1,22 +1,61 @@
 import './styles/index.css'
-import { initMotion, ScrollTrigger } from './lib/motion.js'
+import { initMotion, lockScroll, restoreScroll, settleScroll, sortTriggers, ScrollTrigger } from './lib/motion.js'
 import { markBooted } from './lib/bus.js'
+
+// Scroll restoring is ours (see "Reading position" in lib/motion.js): pins add
+// thousands of px after load, so a remembered pixel lands in the wrong section.
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
 
 // Every section's stylesheet is bundled up-front (no flash of unstyled content);
 // their scripts are code-split and initialised in page order.
 import.meta.glob('./sections/*/*.css', { eager: true })
-const sectionModules = import.meta.glob('./sections/*/*.js')
 
-const SECTIONS = ['boot', 'nav', 'hero', 'mission', 'ascent', 'fleet', 'control', 'manifest', 'terminal', 'join', 'footer']
+// Section entry modules, in page order. Listed explicitly (not globbed) so helper
+// modules and the hero's network worker never become stray main-thread chunks.
+const SECTION_MODULES = {
+  boot: () => import('./sections/boot/boot.js'),
+  nav: () => import('./sections/nav/nav.js'),
+  hero: () => import('./sections/hero/hero.js'),
+  mission: () => import('./sections/mission/mission.js'),
+  ascent: () => import('./sections/ascent/ascent.js'),
+  fleet: () => import('./sections/fleet/fleet.js'),
+  control: () => import('./sections/control/control.js'),
+  manifest: () => import('./sections/manifest/manifest.js'),
+  terminal: () => import('./sections/terminal/terminal.js'),
+  join: () => import('./sections/join/join.js'),
+  footer: () => import('./sections/footer/footer.js'),
+}
+const SECTIONS = Object.keys(SECTION_MODULES)
+
+/**
+ * Runs `callback` in a new task, queued behind work that is already waiting —
+ * notably the hero's scene chunk (scheduler.yield() would jump ahead of it). A
+ * posted message, unlike setTimeout, is neither clamped nor throttled in background tabs.
+ */
+function postTask(callback) {
+  const { port1, port2 } = new MessageChannel()
+  port1.onmessage = () => {
+    port1.close()
+    callback()
+  }
+  port2.postMessage(null)
+}
+
+/** Ends the current task, so the browser can paint and run queued work between inits. */
+const yieldToBrowser = () => new Promise((resolve) => postTask(resolve))
+
+/** Waits for a painted frame (capped at 100 ms — none come in a background tab). */
+const afterPaint = () =>
+  new Promise((resolve) => {
+    requestAnimationFrame(() => postTask(resolve))
+    setTimeout(resolve, 100)
+  })
 
 initMotion()
 
 async function start() {
   // Start downloading every section in parallel...
-  const pending = SECTIONS.map((name) => {
-    const load = sectionModules[`./sections/${name}/${name}.js`]
-    return load ? load().catch((error) => ({ error })) : Promise.resolve(null)
-  })
+  const pending = SECTIONS.map((name) => SECTION_MODULES[name]().catch((error) => ({ error })))
 
   // ...but initialise strictly in page order so pinned ScrollTriggers stack correctly.
   for (const [index, name] of SECTIONS.entries()) {
@@ -26,12 +65,35 @@ async function start() {
       await mod?.init?.()
     } catch (error) {
       console.error(`[sxsi] section "${name}" failed to initialise`, error)
-      if (name === 'boot') markBooted()
+      if (name === 'boot') dismissBoot()
     }
+    // Everything above a #deep-link now has its pins: keep it in view meanwhile.
+    restoreScroll()
+    // The boot overlay is what's on screen: its countdown (or its dismissal) paints
+    // before the heavier sections initialise.
+    await (name === 'boot' ? afterPaint() : yieldToBrowser())
   }
 
-  ScrollTrigger.sort()
+  sortTriggers()
   ScrollTrigger.refresh()
+
+  // A breakpoint flip (resize, rotation) rebuilds that query's pins at the end of
+  // ScrollTrigger's list: re-sort so every trigger below them includes their spacing.
+  ScrollTrigger.addEventListener('matchMedia', () => {
+    sortTriggers()
+    ScrollTrigger.refresh()
+  })
+
+  // Land #deep-links and reloads on their section now that the pins exist.
+  settleScroll()
+}
+
+/** The boot sequence couldn't run: hand the page back now, not at the CSS failsafe (~7.6 s). */
+function dismissBoot() {
+  document.documentElement.dataset.boot = 'done'
+  document.querySelector('.s-boot')?.remove()
+  lockScroll(false)
+  markBooted()
 }
 
 start()
