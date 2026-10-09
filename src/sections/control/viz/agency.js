@@ -10,12 +10,17 @@
  */
 import { seededRandom, pad } from '../../../lib/dom.js'
 import { byTier } from '../../../lib/quality.js'
-import { glowSprite, drawGlow, label, easeOut, easeInOut, approach, wrapAngle, rectBatch, sat, TAU } from './core.js'
+import { glowSprite, drawGlow, label, easeOut, easeInOut, approach, wrapAngle, rectBatch, sat, TAU, NO_DASH, hypot } from './core.js'
 
 const SUB = 1 / 60
 const POINTER_R = 42
 const DOCK_HOLD = 2.4
 const TIMEOUT = 16
+const PLAN_STEPS = 46
+const LATTICE_LEVELS = 6 // brightness buckets for the field arrows
+const PLAN_DASH = [3, 5]
+const RING_DASH = [2, 4]
+const CORRIDOR_DASH = [1, 5]
 
 export function createAgency({ pal, seed = 5 }) {
   let rand = seededRandom(seed * 4099)
@@ -31,8 +36,18 @@ export function createAgency({ pal, seed = 5 }) {
   let corridor = 120
   let layoutSeed = seed * 31 + 7
   let zonesPx = []
-  let lattice = [] // { x, y, dx, dy }
-  let latticeKey = ''
+  let lattice = [] // { x, y, dx, dy, arrow: Path2D }
+  // What the lattice was built for: size + pointer cell (Infinity: no pointer).
+  // latticeW = NaN forces a rebuild.
+  let latticeW = NaN
+  let latticeH = NaN
+  let latticePX = Infinity
+  let latticePY = Infinity
+  // Per-frame scratch, allocated once
+  const out = [0, 0] // field() out-param
+  const latticeBuckets = Array.from({ length: LATTICE_LEVELS }, () => [])
+  const latticeCounts = new Uint32Array(LATTICE_LEVELS)
+  const zoneLabels = []
   const craft = { x: 0, y: 0, vx: 0, vy: 0, hd: 0, thrust: 0, alpha: 0 }
   let phase = 'approach'
   let phaseT = 0
@@ -40,8 +55,10 @@ export function createAgency({ pal, seed = 5 }) {
   let acc = 0
   let trail = []
   let trailClock = 0
-  let plan = []
-  let pointer = null
+  const plan = new Float64Array(PLAN_STEPS * 2) // planned trajectory, x/y pairs
+  let planLen = 0
+  const pointerZone = { x: 0, y: 0, r: POINTER_R }
+  let pointer = null // pointerZone while a pointer is over the tile
   let docks = 0
   let placed = false
   let stall = 0
@@ -93,10 +110,20 @@ export function createAgency({ pal, seed = 5 }) {
       const yMin = Math.max(wide ? h * 0.2 + radius * 0.4 : 0, band.top + radius + 16)
       const yMax = wide ? h * 0.74 - radius * 0.4 : band.bottom - radius
       if (xMax <= xMin || yMax <= yMin) break
-      const zone = { x: xMin + r() * (xMax - xMin), y: yMin + r() * (yMax - yMin), r: radius }
-      if (zonesPx.every((o) => Math.hypot(o.x - zone.x, o.y - zone.y) > (o.r + zone.r) * 1.75)) zonesPx.push(zone)
+      const zone = { x: xMin + r() * (xMax - xMin), y: yMin + r() * (yMax - yMin), r: radius, hatch: null }
+      if (zonesPx.every((o) => hypot(o.x - zone.x, o.y - zone.y) > (o.r + zone.r) * 1.75)) zonesPx.push(zone)
     }
-    latticeKey = ''
+    // The hatching of each zone's core is static: trace it once.
+    for (let i = 0; i < zonesPx.length; i++) {
+      const z = zonesPx[i]
+      z.hatch = new Path2D()
+      for (let k = -z.r; k < z.r; k += 5) {
+        z.hatch.moveTo(z.x + k - z.r, z.y + z.r)
+        z.hatch.lineTo(z.x + k + z.r, z.y - z.r)
+      }
+    }
+    while (zoneLabels.length < zonesPx.length) zoneLabels.push(`KOZ-${zoneLabels.length + 1}`)
+    latticeW = NaN
   }
 
   function reset(keepZones = true) {
@@ -122,7 +149,7 @@ export function createAgency({ pal, seed = 5 }) {
     const tx = x < wx - 6 ? wx : dock.x
     let fx = tx - x
     let fy = dock.y - y
-    let d = Math.hypot(fx, fy) || 1
+    let d = hypot(fx, fy) || 1
     fx /= d
     fy /= d
     // Inside the corridor: pull onto the axis
@@ -130,11 +157,13 @@ export function createAgency({ pal, seed = 5 }) {
 
     const gx = fx
     const gy = fy
-    const obstacles = pointer ? zonesPx.concat(pointer) : zonesPx
-    for (const o of obstacles) {
+    // Keep-out zones, then the pointer's (when there is one).
+    const zones = zonesPx.length
+    for (let i = 0, n = pointer ? zones + 1 : zones; i < n; i++) {
+      const o = i < zones ? zonesPx[i] : pointer
       const dx = x - o.x
       const dy = y - o.y
-      const dist = Math.hypot(dx, dy) || 1
+      const dist = hypot(dx, dy) || 1
       const reach = o.r * 2.3
       if (dist > reach) continue
       const k = Math.min(3, Math.pow((reach - dist) / (reach - o.r * 0.7), 2)) * 1.6
@@ -152,35 +181,58 @@ export function createAgency({ pal, seed = 5 }) {
       fx += nx * k + tx * k * 1.1
       fy += ny * k + ty * k * 1.1
     }
-    d = Math.hypot(fx, fy) || 1
+    d = hypot(fx, fy) || 1
     out[0] = fx / d
     out[1] = fy / d
   }
 
   function buildLattice() {
-    const key = `${w}|${h}|${pointer ? Math.round(pointer.x / 4) + ',' + Math.round(pointer.y / 4) : '-'}`
-    if (key === latticeKey) return
-    latticeKey = key
+    // Rebuilt on resize, and as the pointer moves (in 4px steps).
+    const px = pointer ? Math.round(pointer.x / 4) : Infinity
+    const py = pointer ? Math.round(pointer.y / 4) : Infinity
+    if (w === latticeW && h === latticeH && px === latticePX && py === latticePY) return
+    latticeW = w
+    latticeH = h
+    latticePX = px
+    latticePY = py
     lattice = []
-    const out = [0, 0]
     const ox = (w % spacing) / 2 + spacing / 2
     const oy = (h % spacing) / 2 + spacing / 2
     for (let y = oy; y < h; y += spacing) {
       for (let x = ox; x < w; x += spacing) {
-        if (Math.hypot(x - dock.x, y - dock.y) < 26) continue
+        if (hypot(x - dock.x, y - dock.y) < 26) continue
         let inside = false
-        for (const z of zonesPx) if (Math.hypot(x - z.x, y - z.y) < z.r - 4) inside = true
+        for (let i = 0; i < zonesPx.length; i++) if (hypot(x - zonesPx[i].x, y - zonesPx[i].y) < zonesPx[i].r - 4) inside = true
         if (inside) continue
         field(x, y, out)
-        lattice.push({ x, y, dx: out[0], dy: out[1] })
+        lattice.push({ x, y, dx: out[0], dy: out[1], arrow: arrowPath(x, y, out[0], out[1]) })
       }
     }
+  }
+
+  /** One field arrow (shaft + head), traced once per lattice build. */
+  function arrowPath(x, y, dx, dy) {
+    const L = 5.5
+    const tx = x + dx * L
+    const ty = y + dy * L
+    const g = new Path2D()
+    g.moveTo(x - dx * L, y - dy * L)
+    g.lineTo(tx, ty)
+    g.moveTo(tx - dx * 3 - dy * 2.2, ty - dy * 3 + dx * 2.2)
+    g.lineTo(tx, ty)
+    g.lineTo(tx - dx * 3 + dy * 2.2, ty - dy * 3 - dx * 2.2)
+    return g
   }
 
   /* ---- Simulation --------------------------------------------------------------------- */
   function step(dt, s) {
     time += dt
-    pointer = s.pointer ? { x: s.mx, y: s.my, r: POINTER_R } : null
+    pointer = null
+    if (s.pointer) {
+      pointer = pointerZone
+      pointer.x = s.mx
+      pointer.y = s.my
+    }
     acc += dt
     while (acc >= SUB) {
       acc -= SUB
@@ -189,22 +241,22 @@ export function createAgency({ pal, seed = 5 }) {
     buildLattice()
 
     // Planned trajectory: integrate the field ahead of the craft.
-    plan = []
+    planLen = 0
     if (phase === 'approach') {
       let x = craft.x
       let y = craft.y
-      const out = [0, 0]
-      for (let i = 0; i < 46; i++) {
+      for (let i = 0; i < PLAN_STEPS; i++) {
         field(x, y, out)
         x += out[0] * 9
         y += out[1] * 9
-        plan.push(x, y)
-        if (Math.hypot(x - dock.x, y - dock.y) < 10) break
+        plan[planLen++] = x
+        plan[planLen++] = y
+        if (hypot(x - dock.x, y - dock.y) < 10) break
       }
     }
 
-    const near = pointer && Math.hypot(pointer.x - craft.x, pointer.y - craft.y) < 110
-    const dist = Math.hypot(dock.x - craft.x, dock.y - craft.y)
+    const near = pointer && hypot(pointer.x - craft.x, pointer.y - craft.y) < 110
+    const dist = hypot(dock.x - craft.x, dock.y - craft.y)
     api.status = phase === 'docked' ? 'Docked' : near ? 'Re-routing' : dist < corridor * 1.2 ? 'Final approach' : 'Approach'
   }
 
@@ -219,9 +271,8 @@ export function createAgency({ pal, seed = 5 }) {
       return
     }
     craft.alpha = Math.min(1, craft.alpha + dt / 0.6)
-    const out = [0, 0]
     field(craft.x, craft.y, out)
-    const dist = Math.hypot(dock.x - craft.x, dock.y - craft.y)
+    const dist = hypot(dock.x - craft.x, dock.y - craft.y)
     const vmax = 88 * (1 + s.energy * 0.35)
     const speed = vmax * Math.min(1, Math.max(0.12, dist / 210))
     let tx = out[0] * speed
@@ -238,12 +289,12 @@ export function createAgency({ pal, seed = 5 }) {
     craft.vy += ay
     craft.x += craft.vx * dt
     craft.y += craft.vy * dt
-    craft.thrust += (Math.min(1, Math.hypot(ax, ay) * 1.4 + 0.15) - craft.thrust) * approach(6, dt)
+    craft.thrust += (Math.min(1, hypot(ax, ay) * 1.4 + 0.15) - craft.thrust) * approach(6, dt)
     const want = dist < corridor ? 0 : Math.atan2(craft.vy, craft.vx)
     craft.hd += wrapAngle(want - craft.hd) * approach(4, dt)
 
     // Safety net: if the craft ever stalls in a field minimum, nudge it.
-    if (Math.hypot(craft.vx, craft.vy) < 4 && dist > 20) {
+    if (hypot(craft.vx, craft.vy) < 4 && dist > 20) {
       stall += dt
       if (stall > 1.2) {
         craft.vy += (craft.y > dock.y ? -1 : 1) * 30
@@ -287,8 +338,8 @@ export function createAgency({ pal, seed = 5 }) {
   }
 
   function readout() {
-    const dist = Math.hypot(dock.x - craft.x, dock.y - craft.y)
-    const v = Math.hypot(craft.vx, craft.vy) / 60
+    const dist = hypot(dock.x - craft.x, dock.y - craft.y)
+    const v = hypot(craft.vx, craft.vy) / 60
     return `Range ${pad(dist * 1.6, 4)} m · Vc ${v.toFixed(2)} m/s`
   }
 
@@ -305,20 +356,23 @@ export function createAgency({ pal, seed = 5 }) {
     drawDock(ctx, grow)
 
     // Breadcrumb trail
-    for (const p of trail) dots.dot(p.x, p.y, 2, boot * Math.max(0, 1 - (time - p.t) / 7) * 0.7 * craft.alpha)
+    for (let i = 0; i < trail.length; i++) {
+      const p = trail[i]
+      dots.dot(p.x, p.y, 2, boot * Math.max(0, 1 - (time - p.t) / 7) * 0.7 * craft.alpha)
+    }
     dots.flush(ctx, pal.atmo.rgb)
 
     // Planned trajectory
-    if (plan.length > 2 && craft.alpha > 0.05) {
+    if (planLen > 2 && craft.alpha > 0.05) {
       ctx.globalAlpha = boot * craft.alpha * (0.5 + e * 0.3)
       ctx.strokeStyle = pal.text.rgb
-      ctx.setLineDash([3, 5])
+      ctx.setLineDash(PLAN_DASH)
       ctx.lineDashOffset = -time * 16
       ctx.beginPath()
       ctx.moveTo(craft.x, craft.y)
-      for (let i = 0; i < plan.length; i += 2) ctx.lineTo(plan[i], plan[i + 1])
+      for (let i = 0; i < planLen; i += 2) ctx.lineTo(plan[i], plan[i + 1])
       ctx.stroke()
-      ctx.setLineDash([])
+      ctx.setLineDash(NO_DASH)
       ctx.lineDashOffset = 0
     }
 
@@ -326,11 +380,11 @@ export function createAgency({ pal, seed = 5 }) {
     if (pointer) {
       ctx.globalAlpha = boot * (0.3 + e * 0.25)
       ctx.strokeStyle = pal.atmo.rgb
-      ctx.setLineDash([2, 4])
+      ctx.setLineDash(RING_DASH)
       ctx.beginPath()
       ctx.arc(pointer.x, pointer.y, POINTER_R, 0, TAU)
       ctx.stroke()
-      ctx.setLineDash([])
+      ctx.setLineDash(NO_DASH)
     }
 
     drawCraft(ctx, boot)
@@ -338,13 +392,13 @@ export function createAgency({ pal, seed = 5 }) {
 
   function drawLattice(ctx, grow, e) {
     // Bucket arrows by brightness: the field glows near the craft and pointer.
-    const buckets = [[], [], [], [], [], []]
-    for (const p of lattice) {
+    for (let i = 0; i < lattice.length; i++) {
+      const p = lattice[i]
       let a = 0.1 + e * 0.05
-      const dc = Math.hypot(p.x - craft.x, p.y - craft.y)
+      const dc = hypot(p.x - craft.x, p.y - craft.y)
       a += 0.5 * Math.exp(-(dc * dc) / (2 * 75 * 75)) * craft.alpha
       if (pointer) {
-        const dp = Math.hypot(p.x - pointer.x, p.y - pointer.y)
+        const dp = hypot(p.x - pointer.x, p.y - pointer.y)
         a += 0.3 * Math.exp(-(dp * dp) / (2 * 60 * 60))
       }
       // Reveal sweeps left → right during boot.
@@ -352,33 +406,27 @@ export function createAgency({ pal, seed = 5 }) {
       // The field lives in the band between HUD and copy: fade it out under both.
       a *= Math.min(sat((p.y - band.top + 14) / 40), sat((band.bottom + 34 - p.y) / 50))
       if (a < 0.03) continue
-      buckets[Math.min(5, Math.floor(a * 9))].push(p)
+      const b = Math.min(LATTICE_LEVELS - 1, Math.floor(a * 9))
+      latticeBuckets[b][latticeCounts[b]++] = p
     }
     ctx.lineWidth = 1
     ctx.strokeStyle = pal.atmo.rgb
-    for (let b = 0; b < buckets.length; b++) {
-      const list = buckets[b]
-      if (!list.length) continue
+    for (let b = 0; b < LATTICE_LEVELS; b++) {
+      const count = latticeCounts[b]
+      if (!count) continue
+      latticeCounts[b] = 0
+      const list = latticeBuckets[b]
+      const bucket = new Path2D()
+      for (let i = 0; i < count; i++) bucket.addPath(list[i].arrow)
       ctx.globalAlpha = Math.min(0.75, (b + 0.6) / 9)
-      ctx.beginPath()
-      for (const p of list) {
-        const L = 5.5
-        const tx = p.x + p.dx * L
-        const ty = p.y + p.dy * L
-        ctx.moveTo(p.x - p.dx * L, p.y - p.dy * L)
-        ctx.lineTo(tx, ty)
-        // Arrow head
-        ctx.moveTo(tx - p.dx * 3 - p.dy * 2.2, ty - p.dy * 3 + p.dx * 2.2)
-        ctx.lineTo(tx, ty)
-        ctx.lineTo(tx - p.dx * 3 + p.dy * 2.2, ty - p.dy * 3 - p.dx * 2.2)
-      }
-      ctx.stroke()
+      ctx.stroke(bucket)
     }
   }
 
   function drawZones(ctx, grow, e) {
     ctx.lineWidth = 1
-    zonesPx.forEach((z, i) => {
+    for (let i = 0; i < zonesPx.length; i++) {
+      const z = zonesPx[i]
       ctx.globalAlpha = grow * 0.05
       ctx.fillStyle = pal.atmo.rgb
       ctx.beginPath()
@@ -386,26 +434,21 @@ export function createAgency({ pal, seed = 5 }) {
       ctx.fill()
       ctx.globalAlpha = grow * (0.4 + e * 0.15)
       ctx.strokeStyle = pal.atmo.rgb
-      ctx.setLineDash([2, 4])
+      ctx.setLineDash(RING_DASH)
       ctx.beginPath()
       ctx.arc(z.x, z.y, z.r * (0.9 + 0.1 * grow), 0, TAU)
       ctx.stroke()
-      ctx.setLineDash([])
+      ctx.setLineDash(NO_DASH)
       // Hatched core
       ctx.globalAlpha = grow * 0.12
       ctx.save()
       ctx.beginPath()
       ctx.arc(z.x, z.y, z.r * 0.55, 0, TAU)
       ctx.clip()
-      ctx.beginPath()
-      for (let k = -z.r; k < z.r; k += 5) {
-        ctx.moveTo(z.x + k - z.r, z.y + z.r)
-        ctx.lineTo(z.x + k + z.r, z.y - z.r)
-      }
-      ctx.stroke()
+      ctx.stroke(z.hatch)
       ctx.restore()
-      label(ctx, `KOZ-${i + 1}`, z.x, z.y - z.r - 9, { alpha: grow * 0.5, align: 'center', size: 8 })
-    })
+      label(ctx, zoneLabels[i], z.x, z.y - z.r - 9, { alpha: grow * 0.5, align: 'center', size: 8 })
+    }
   }
 
   function drawDock(ctx, grow) {
@@ -415,14 +458,14 @@ export function createAgency({ pal, seed = 5 }) {
     ctx.strokeStyle = pal.text.rgb
     ctx.lineWidth = 1
     ctx.globalAlpha = grow * 0.22
-    ctx.setLineDash([1, 5])
+    ctx.setLineDash(CORRIDOR_DASH)
     ctx.beginPath()
     ctx.moveTo(x - 12, y - 4)
     ctx.lineTo(x - corridor, y - corridor * 0.16)
     ctx.moveTo(x - 12, y + 4)
     ctx.lineTo(x - corridor, y + corridor * 0.16)
     ctx.stroke()
-    ctx.setLineDash([])
+    ctx.setLineDash(NO_DASH)
 
     // Station segment: truss with cross-bracing and two radiator panels
     const tx = x + 14

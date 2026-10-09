@@ -97,6 +97,22 @@ export function sortTriggers() {
   ScrollTrigger.sort((a, b) => keys.get(a) - keys.get(b) || (a.trigger === b.trigger ? Boolean(b.pin) - Boolean(a.pin) : 0))
 }
 
+let keepingSorted = false
+/**
+ * From now on, re-sort at the start of every refresh. A breakpoint flip (resize,
+ * rotation) makes gsap.matchMedia() rebuild that query's pins at the *end* of the
+ * list, and the refresh GSAP then runs would measure every trigger below them
+ * without their spacing. Sorting in 'refreshInit' fixes that same refresh: no
+ * second refresh per flip, and ordinary resizes cost nothing extra.
+ */
+export function keepTriggersSorted() {
+  if (keepingSorted) return
+  keepingSorted = true
+  ScrollTrigger.addEventListener('refreshInit', () => {
+    sortTriggers()
+  })
+}
+
 /** Pause / resume page scrolling (e.g. while a modal or boot overlay is open). */
 export function lockScroll(locked) {
   if (lenis) locked ? lenis.stop() : lenis.start()
@@ -146,7 +162,7 @@ function initAnchorLinks() {
    ========================================================================== */
 const POSITION_KEY = 'sxsi:position'
 const RESIZE_HOLD = 600 // ms the position is held after a resize (the jump to 0 can't overwrite it)
-const RESIZE_WAIT = 3000 // ...extended until a refresh has happened, but never longer than this
+const RESIZE_WAIT = 5000 // ...extended until a refresh has happened and the layout has stopped reflowing, never longer
 const SETTLE_GRACE = 3000 // ms a deep link / reload target is still held after start-up
 const SECTIONS = 'main > section[id], main > .pin-spacer > section[id], body > footer'
 const SCROLL_KEYS = /^(Arrow(Up|Down|Left|Right)|Page(Up|Down)|Home|End|Tab| |Spacebar)$/
@@ -156,6 +172,7 @@ let target = null // { y(): number | null, position? } — where the page must b
 let holdUntil = 0
 let holdTimer = 0
 let releaseTimer = 0
+let resizedAt = 0
 let resizeId = 0
 let refreshedId = 0
 let geometry = null
@@ -314,11 +331,18 @@ function initReadingPosition() {
   // Layout changed: re-measure lazily (and keep a deep link / reload on its section).
   const invalidate = () => (geometry = null)
   let relayout = 0
+  let relayouts = 0 // layout changes the ResizeObserver has seen
   if (typeof ResizeObserver === 'function') {
     const main = document.querySelector('main')
     const ro = new ResizeObserver(() => {
       invalidate()
-      if (!target || target.resize || relayout) return
+      relayouts++
+      if (!target) return
+      // After a resize the layout can keep moving past the refresh (viewport units
+      // apply on the next frame, sections reflow on their own resize handlers):
+      // hold the position until it stops.
+      if (target.resize) holdUntil = Math.max(holdUntil, performance.now() + RESIZE_HOLD)
+      if (relayout) return
       relayout = requestAnimationFrame(() => {
         relayout = 0
         restore()
@@ -334,15 +358,30 @@ function initReadingPosition() {
   })
 
   // ---- Resize / rotation: hold the position, put it back after the refresh ----
-  const endHold = () => {
-    // No refresh since the last resize yet (a busy main thread delays it): keep holding.
-    if (refreshedId !== resizeId && performance.now() < holdUntil + RESIZE_WAIT - RESIZE_HOLD) {
-      holdTimer = setTimeout(endHold, 150)
-      return
-    }
+  const releaseHold = () => {
     holdUntil = 0
     if (target?.resize) target = null
     if (!target && !startupSteps) position = readPosition()
+  }
+  const endHold = () => {
+    if (performance.now() >= resizedAt + RESIZE_WAIT) return releaseHold()
+    // No refresh since the last resize yet (a busy main thread delays it), or the
+    // layout is still reflowing: keep holding.
+    if (refreshedId !== resizeId || performance.now() < holdUntil) {
+      holdTimer = setTimeout(endHold, 150)
+      return
+    }
+    // Let go only once the layout has also held still across two painted frames (a
+    // slow device paints seldom, so a reflow can still be on its way).
+    const id = resizeId
+    const seen = relayouts
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        if (id !== resizeId || !holdUntil) return // resized again, or the visitor took over
+        if (relayouts === seen) releaseHold()
+        else holdTimer = setTimeout(endHold, 150)
+      }),
+    )
   }
   window.addEventListener('resize', () => {
     invalidate()
@@ -356,7 +395,8 @@ function initReadingPosition() {
     lastSize = { w, h }
     if (minor) return
     resizeId++
-    holdUntil = performance.now() + RESIZE_HOLD
+    resizedAt = performance.now()
+    holdUntil = resizedAt + RESIZE_HOLD
     if (!target && position) {
       const held = position
       target = { resize: true, position: held, y: () => positionY(held) }

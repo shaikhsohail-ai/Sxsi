@@ -7,6 +7,11 @@
  * skip, error, not-run). Runs once per session; skipped instantly with
  * ?noboot or under reduced motion (decided before first paint in boot.html).
  * Any key / click / tap skips. The overlay is removed from the DOM after.
+ *
+ * Pacing: the sections initialised right after boot can hold the main thread
+ * for a second or more. The sequence is built straight away but only starts
+ * once the overlay has painted (the CSS standby holds the screen until then),
+ * and while it plays a long frame delays it instead of skipping T−3 · 2 · 1.
  */
 import { gsap, lockScroll } from '../../lib/motion.js'
 import { markBooted, emit } from '../../lib/bus.js'
@@ -17,6 +22,14 @@ import { formatUtc } from '../nav/clock.js'
 
 const SESSION_KEY = 'sxsi:booted'
 const LATE_MS = 4500 // scripts this late (slow network): don't add a show on top of the wait
+// Frame pacing (see run()): a frame longer than LAG_THRESHOLD advances the
+// sequence by LAG_STEP only, so it waits out the stall; once it has waited
+// HOLD_MAX in all, by LAG_STEP_LATE: still under one countdown beat (0.28 s),
+// so no digit is skipped, and a device slow on every frame finishes in ~12.
+const LAG_THRESHOLD = 250 // ms
+const LAG_STEP = 33 // ms
+const LAG_STEP_LATE = 200 // ms
+const HOLD_MAX = 2.4 // s (about the sequence's own length)
 
 const LOG = [
   { label: 'SXSI FLIGHT COMPUTER v1.0', head: true },
@@ -101,9 +114,13 @@ function build(root) {
     return { text: label + leader, status: status || '', head }
   })
 
-  // Keep the CSS standby (if it painted) on top so it can cross-fade away.
+  // The CSS standby (if it painted) stays in place, on top, to cross-fade away.
+  // Built in around it, not moved: re-inserting it would restart its fade-in and
+  // blank the screen until the sequence starts.
   const standby = root.querySelector('.s-boot__standby')
-  root.innerHTML = `
+  root.insertAdjacentHTML(
+    'afterbegin',
+    `
     <div class="s-boot__panel s-boot__panel--top"><span class="s-boot__edge"></span></div>
     <div class="s-boot__panel s-boot__panel--bottom"><span class="s-boot__edge"></span></div>
     <div class="s-boot__flash"></div>
@@ -142,9 +159,9 @@ function build(root) {
       <div class="s-boot__bar"><span></span></div>
       <p class="s-boot__skip">${isTouch ? 'Tap' : 'Press any key'} to skip</p>
     </div>
-    <div class="s-boot__seam"></div>`
+    <div class="s-boot__seam"></div>`,
+  )
   root.classList.add('is-built')
-  if (standby) root.append(standby)
 
   const q = (sel) => root.querySelector(sel)
   return {
@@ -176,13 +193,45 @@ function run(root, { handOver, finish }) {
   lockScroll(true)
 
   let tl = null
+  let stopped = false
+
+  // ---- Frame pacing ----------------------------------------------------------
+  // GSAP runs on wall-clock time and lib/motion.js turns lag smoothing off (Lenis
+  // reads the ticker), so a stalled frame would jump the countdown ahead. While
+  // the sequence plays, long frames hold it instead (constants above).
+  let pacing = 0 // 0 off · 1 holding · 2 stepping (hold budget spent)
+  let startedAt = 0
+  const pace = (on) => {
+    if (on) {
+      pacing = 1
+      startedAt = performance.now()
+      gsap.ticker.lagSmoothing(LAG_THRESHOLD, LAG_STEP)
+    } else if (pacing) {
+      pacing = 0
+      gsap.ticker.lagSmoothing(0) // lib/motion.js's setting (boot never runs without Lenis)
+    }
+  }
+  const checkHold = () => {
+    if (pacing !== 1 || (performance.now() - startedAt) / 1000 - tl.totalTime() < HOLD_MAX) return
+    pacing = 2
+    gsap.ticker.lagSmoothing(LAG_THRESHOLD, LAG_STEP_LATE)
+  }
+
+  // Every exit hands the page back through here: ticker restored, then scrolling.
+  const release = () => {
+    stopped = true
+    pace(false)
+    handOver()
+  }
 
   // ---- Skip: any key, click or tap -----------------------------------------
   const events = ['keydown', 'pointerdown']
+  let skipping = false
   const skip = () => {
+    skipping = true
     detach()
     tl?.kill()
-    handOver()
+    release()
     gsap.to(root, { autoAlpha: 0, duration: 0.35, ease: 'power2.out', onComplete: finish })
   }
   const detach = () => events.forEach((type) => window.removeEventListener(type, skip, true))
@@ -216,7 +265,16 @@ function run(root, { handOver, finish }) {
 
   // ---- Timeline (2.4 s) --------------------------------------------------------
   // `id` lets tooling find it (gsap.getById('sxsi-boot')) to freeze frames.
-  tl = gsap.timeline({ id: 'sxsi-boot', defaults: { ease: 'expo.out' }, onComplete: () => (detach(), finish()) })
+  // Built paused: it starts once the overlay has painted (see the end of run()).
+  tl = gsap.timeline({
+    id: 'sxsi-boot',
+    paused: true,
+    defaults: { ease: 'expo.out' },
+    onUpdate: checkHold,
+    onComplete: () => (detach(), release(), finish()),
+    // Killed from outside (not a skip): never leave the ticker paced or the page covered.
+    onInterrupt: () => skipping || (detach(), release(), finish()),
+  })
 
   if (el.standby) tl.to(el.standby, { autoAlpha: 0, scale: 0.96, duration: 0.3, ease: 'power2.out' }, 0)
   tl.from(el.corners, { autoAlpha: 0, scale: 0.4, duration: 0.5, stagger: 0.03 }, 0)
@@ -264,11 +322,23 @@ function run(root, { handOver, finish }) {
     .to(el.seam, { autoAlpha: 1, scaleX: 1, duration: 0.2, ease: 'expo.out' }, 1.96)
     .to(el.ui, { autoAlpha: 0, duration: 0.16, ease: 'power1.in' }, 1.98)
     .to(el.flash, { autoAlpha: 0, duration: 0.25, ease: 'power1.in' }, 2.02)
-    .call(handOver, null, 2.04) // the hero starts rising while the fairing clears
+    .call(release, null, 2.04) // the hero starts rising while the fairing clears
     .to(el.panels[0], { yPercent: -101, duration: 0.36, ease: 'expo.inOut' }, 2.04)
     .to(el.panels[1], { yPercent: 101, duration: 0.36, ease: 'expo.inOut' }, 2.04)
     // the halves' inner edges catch the light as they part
     .fromTo(el.edges, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'power1.out' }, 2.02)
     .to(el.edges, { autoAlpha: 0, duration: 0.24, ease: 'power1.in' }, 2.16)
     .to(el.seam, { autoAlpha: 0, scaleY: 6, duration: 0.3, ease: 'power2.out' }, 2.1)
+
+  // ---- Start: on the second frame after init -----------------------------------
+  // By then the overlay (standby on top) has painted; from here, long frames hold
+  // the sequence rather than skip it. Tooling that already took the timeline over
+  // (seeked / froze it) keeps it.
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      if (stopped || !tl.paused() || tl.totalTime() > 0) return
+      pace(true)
+      tl.play()
+    }),
+  )
 }

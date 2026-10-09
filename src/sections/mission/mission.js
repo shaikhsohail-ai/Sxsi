@@ -20,6 +20,9 @@ import { $, $$, clamp, pad } from '../../lib/dom.js'
 
 const STEP = 0.3 // timeline gap between successive words
 const SPAN = 1.15 // how long each word takes to light (≈ 4 words in flight)
+// Fully lit hold before the frame releases, as a share of the lighting time:
+// ≈ 0.2 viewport of scroll on the 90vh runway (0.19 on the 80vh one ≤ 900px).
+const HOLD = 0.18
 
 export function init() {
   const root = document.getElementById('mission')
@@ -130,7 +133,7 @@ function initManifesto(stage, words, meter, state) {
     defaults: { ease: 'none' },
     scrollTrigger: {
       trigger: stage,
-      start: 'top 45%',
+      start: 'top 60%', // first words light as the statement enters, trimming the hero→mission lull
       end: 'bottom bottom', // the moment the sticky frame lets go
       scrub: 0.9,
     },
@@ -140,7 +143,7 @@ function initManifesto(stage, words, meter, state) {
     tl.to([word, meter.segs[i]], { '--l': 1, duration: SPAN, ease: 'sine.inOut' }, i * STEP)
   })
   const litAt = tl.duration()
-  tl.to({}, { duration: litAt * 0.14 }) // hold, fully lit, before the frame releases
+  tl.to({}, { duration: litAt * HOLD }) // hold, fully lit, before the frame releases
 
   let cued = false
   let lastLit = -1 // -1: the first update only records where the page opened

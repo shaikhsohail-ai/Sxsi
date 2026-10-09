@@ -18,7 +18,8 @@
   left: var(--gutter);
   right: var(--gutter);
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--c-line-strong) 18%, var(--c-line-strong) 82%, transparent);
+  /* Soft, centred: the join finale fades to void just above this seam */
+  background: linear-gradient(90deg, transparent, var(--c-line) 30%, var(--c-line) 70%, transparent);
 }
 
 /* ---- Top row --------------------------------------------------------------- */
@@ -168,6 +169,31 @@
 
 .s-footer__tm-item--status {
   margin-left: auto;
+}
+
+/* Pad coordinates are brand fiction: tagged like every simulated readout */
+.s-footer__tm-item--pad {
+  align-items: center;
+}
+
+.s-footer__tm-item--pad dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 0.9em;
+}
+
+/* Site-wide disclosure tag (identical in every section). */
+.s-footer .s-footer__sim {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  line-height: 1;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--c-text-dim);
+  border: 1px solid var(--c-line-strong);
+  padding: 3px 6px 2px;
+  border-radius: var(--radius);
 }
 
 /* The live clock needs JS */
@@ -324,6 +350,7 @@ html:not(.js) .s-footer__tm-item--utc {
   }
 
   .s-footer__tm-item:nth-child(3) {
+    grid-column: 2; /* stays right when the clock is hidden (no JS) */
     justify-self: end;
   }
 
@@ -333,5 +360,25 @@ html:not(.js) .s-footer__tm-item--utc {
 
   .s-footer__disclaimer {
     text-align: left;
+  }
+}
+
+/* Touch: 44px tap targets. Same type; the underline keeps its 4px below it. */
+@media (pointer: coarse) {
+  .s-footer .s-footer__label {
+    margin-bottom: 15px; /* first link's type stays 27px under its label */
+  }
+
+  .s-footer .s-footer__links {
+    gap: 0;
+  }
+
+  .s-footer .s-footer__link {
+    min-height: 44px;
+  }
+
+  .s-footer .s-footer__link::after {
+    bottom: 8px;
+    bottom: calc(50% - 0.5lh - 4px);
   }
 }

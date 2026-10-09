@@ -251,12 +251,18 @@ function initMenu(header, menu, state) {
     })
   })
 
+  // On screen (open, or wiping closed): native scrolling stays still behind it.
+  const setMenuShown = (shown) => {
+    menu.hidden = !shown
+    document.documentElement.classList.toggle('has-nav-menu', shown)
+  }
+
   // ---- Timeline --------------------------------------------------------------
   const tl = gsap.timeline({
     paused: true,
     defaults: { ease: 'expo.out' },
     onReverseComplete: () => {
-      menu.hidden = true
+      setMenuShown(false)
       header.classList.remove('is-menu-layer')
       gsap.set(menu, { clearProps: 'clipPath' })
     },
@@ -301,7 +307,7 @@ function initMenu(header, menu, state) {
     state.menuOpen = true
     returnFocus = true
     state.reveal?.()
-    menu.hidden = false
+    setMenuShown(true)
     header.classList.add('is-menu-open', 'is-menu-layer')
     toggle.setAttribute('aria-expanded', 'true')
     if (toggleLabel) toggleLabel.textContent = 'Close'
@@ -331,7 +337,7 @@ function initMenu(header, menu, state) {
     if (returnFocus) toggle.focus({ preventScroll: true })
     if (reducedMotion) {
       tl.progress(0)
-      menu.hidden = true
+      setMenuShown(false)
       header.classList.remove('is-menu-layer')
     } else tl.timeScale(2.1).reverse()
   }

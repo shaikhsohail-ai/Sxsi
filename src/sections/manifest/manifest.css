@@ -633,6 +633,11 @@
   opacity: 0.6;
 }
 
+/* Past the target the clock holds at T−0 and the window reads open */
+.s-manifest .s-manifest__window-open {
+  color: var(--c-ignite-soft);
+}
+
 .s-manifest .s-manifest__objective {
   margin-top: 16px;
   max-width: 40ch;
@@ -657,8 +662,8 @@
 }
 
 .s-manifest .s-manifest__specs dt {
-  color: var(--manifest-faint);
-  font-size: 0.62rem;
+  color: var(--c-text-dim);
+  font-size: 0.6875rem; /* 11px: the smallest label size on the page, phones included */
 }
 
 .s-manifest .s-manifest__specs dd {
@@ -696,10 +701,13 @@
   margin-top: 32px;
 }
 
+/* The roadmap disclaimer: a brand rule, so it reads as clearly as the other labels */
 .s-manifest .s-manifest__note {
   margin-top: 26px;
-  font-size: 0.62rem;
-  color: var(--manifest-faint);
+  font-size: var(--fs-micro);
+  line-height: 1.6;
+  color: var(--c-text-dim);
+  text-wrap: balance;
 }
 
 /* ---- Reveal (only once the script has armed the section) ------------------ */
@@ -738,6 +746,18 @@
 .s-manifest.is-armed .s-manifest__mission.is-in .s-manifest__card > * {
   opacity: 1;
   transform: none;
+}
+
+/* Keyboard focus never lands on a patch that is still assembling: the slot
+   shows at once (the script also marks the mission .is-in and keeps it). */
+.s-manifest .s-manifest__mission:focus-within .s-manifest__patch-slot,
+.s-manifest .s-manifest__mission:focus-within .s-manifest__card > * {
+  opacity: 1;
+  transform: none;
+}
+
+.s-manifest .s-manifest__mission:focus-within .s-manifest__patch-slot {
+  transition-duration: 0s, 0.7s; /* opacity, transform */
 }
 
 .s-manifest .s-manifest__mission.is-in .s-manifest__card > :nth-child(1) { transition-delay: 0.15s; }
@@ -834,7 +854,13 @@
    ========================================================================== */
 .s-manifest.is-flight {
   --patch: clamp(176px, min(25vh, 17vw), 280px);
-  --intro-w: max(46vw, 470px);
+  /* Left edge of the centred content grid the other sections sit on (the
+     gutter until the viewport outgrows --maxw). The track is far wider than
+     the viewport, so this is in vw, not %. */
+  --grid-x: max(var(--gutter), calc((100vw - var(--maxw)) / 2 + var(--gutter)));
+  /* ...and always room for the intro copy: the title's widest line is ~26vw,
+     capped at ~440px (only ever binds past ~2600px wide). */
+  --intro-w: max(46vw, 470px, calc(var(--grid-x) + 4vw + min(28vw, 460px)));
   --station-w: max(41vw, 560px);
   --outro-w: max(56vw, 640px);
   --y0: 55%;
@@ -961,9 +987,7 @@
   max-width: none;
   height: 100%;
   margin: 0;
-  padding-top: calc(var(--nav-h) + 11vh);
-  padding-bottom: 0;
-  padding-right: 4vw;
+  padding: calc(var(--nav-h) + 11vh) 4vw 0 var(--grid-x);
 }
 
 .s-manifest.is-flight .s-manifest__lead {
@@ -975,7 +999,7 @@
   align-items: center;
   gap: 14px;
   position: absolute;
-  left: var(--gutter);
+  left: var(--grid-x);
   bottom: 9vh;
   color: var(--manifest-faint);
 }
@@ -1318,11 +1342,12 @@
   max-width: none;
   height: 100%;
   margin: 0;
-  padding: 0 var(--gutter) 0 calc(var(--outro-w) * 0.34);
+  /* The closing frame ends on the content grid's right edge; on wide screens the
+     block slides left by as much as that edge moved in, so it keeps its measure. */
+  padding: 0 var(--grid-x) 15vh max(var(--gutter), calc(var(--outro-w) * 0.34 - (var(--grid-x) - var(--gutter))));
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding-bottom: 15vh;
 }
 
 .s-manifest.is-flight .s-manifest__outro-title {
@@ -1349,7 +1374,7 @@
 }
 
 .s-manifest .s-manifest__hud-title {
-  left: var(--gutter);
+  left: var(--grid-x, var(--gutter)); /* takes over from the intro eyebrow, on the same line */
   opacity: 0;
   transform: translate3d(0, -6px, 0);
   transition: opacity 0.6s var(--manifest-ease), transform 0.8s var(--manifest-ease);
@@ -1361,7 +1386,7 @@
 }
 
 .s-manifest .s-manifest__hud-tlm {
-  right: var(--gutter);
+  right: var(--gutter); /* the frame's corner: the vehicle exits past it at the end */
   display: flex;
   gap: 22px;
   align-items: center;
@@ -1382,12 +1407,17 @@
   text-align: right;
 }
 
+/* Disclosure tag (the site-wide spec, identical in every section) */
 .s-manifest .s-manifest__hud-sim {
-  padding: 3px 7px;
-  border: 1px solid var(--c-line);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  line-height: 1;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--c-text-dim);
+  border: 1px solid var(--c-line-strong);
+  padding: 3px 6px 2px;
   border-radius: var(--radius);
-  font-size: 0.6rem;
-  color: var(--manifest-faint);
 }
 
 .s-manifest .s-manifest__karman {
@@ -1408,7 +1438,7 @@
 .s-manifest .s-manifest__karman-label {
   position: absolute;
   bottom: 8px;
-  left: var(--gutter);
+  left: var(--grid-x, var(--gutter));
   font-size: 0.6rem;
   color: var(--manifest-faint);
   white-space: nowrap;

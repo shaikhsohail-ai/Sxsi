@@ -9,10 +9,15 @@
  */
 import { seededRandom, pad } from '../../../lib/dom.js'
 import { byTier } from '../../../lib/quality.js'
-import { glowSprite, drawGlow, label, easeOut, approach, rectBatch, dotted, TAU } from './core.js'
+import { glowSprite, drawGlow, label, easeOut, approach, rectBatch, dotted, TAU, NO_DASH, hypot } from './core.js'
 
 const KINDS = ['TXT', 'IMG', 'AUD', 'VID', 'SIG', 'GEO', 'DOC', 'SEN']
 const DECAY = 0.75 // phosphor decay rate (1/s)
+const FEED_DASH = [2, 2]
+const LOCK_DASH = [2, 3]
+// Corner brackets: the four corners' signs, walked with an index (no per-call arrays).
+const CORNER_X = [-1, 1, 1, -1]
+const CORNER_Y = [-1, -1, 1, 1]
 
 export function createPerception({ pal, seed = 3 }) {
   const rand = seededRandom(seed * 92821)
@@ -35,6 +40,9 @@ export function createPerception({ pal, seed = 3 }) {
   const contacts = []
   const pings = []
   const barBatch = rectBatch(12)
+  const glow = new Float64Array(count) // per-frame phosphor intensity of each contact
+  let bearingTicks = null // Path2D: the scope's bearing ticks (once the boot has drawn it in)
+  const pt = [0, 0] // scratch point (pos() out-param)
 
   for (let i = 0; i < count; i++) contacts.push(makeContact(true))
 
@@ -42,7 +50,7 @@ export function createPerception({ pal, seed = 3 }) {
   return api
 
   function makeContact(initial = false) {
-    return {
+    const c = {
       r: 0.18 + rand() * 0.76,
       th: rand() * TAU,
       dth: (rand() - 0.5) * 0.05,
@@ -51,10 +59,13 @@ export function createPerception({ pal, seed = 3 }) {
       hits: initial && rand() < 0.7 ? 1 : 0, // most of the opening picture is already tracked
       kind: KINDS[Math.floor(rand() * KINDS.length)],
       id: pad(serial++ % 100),
+      tag: '',
       band: rand(),
       life: initial ? 6 + rand() * 20 : 14 + rand() * 14,
       fadeIn: initial ? 1 : 0,
     }
+    c.tag = `${c.kind}-${c.id}`
+    return c
   }
 
   /* ---- Layout --------------------------------------------------------------------- */
@@ -73,10 +84,13 @@ export function createPerception({ pal, seed = 3 }) {
     } else {
       wave = null
     }
+    bearingTicks = null
   }
 
-  function pos(c) {
-    return [cx + Math.cos(c.th) * c.r * R, cy + Math.sin(c.th) * c.r * R]
+  function pos(c, out) {
+    out[0] = cx + Math.cos(c.th) * c.r * R
+    out[1] = cy + Math.sin(c.th) * c.r * R
+    return out
   }
 
   /* ---- Simulation --------------------------------------------------------------------- */
@@ -106,18 +120,22 @@ export function createPerception({ pal, seed = 3 }) {
       const p = pings[k]
       const prevR = p.r
       p.r = easeOut((time - p.t0) / 1.2)
-      for (const c of contacts) if (c.r > prevR && c.r <= p.r) paint(c, true)
+      for (let i = 0; i < contacts.length; i++) {
+        const c = contacts[i]
+        if (c.r > prevR && c.r <= p.r) paint(c, true)
+      }
       if (time - p.t0 > 1.4) pings.splice(k, 1)
     }
 
     // Pointer lock: the resolved contact nearest the pointer inside the scope.
     lockTarget = null
-    if (s.pointer && Math.hypot(s.mx - cx, s.my - cy) < R * 1.1) {
+    if (s.pointer && hypot(s.mx - cx, s.my - cy) < R * 1.1) {
       let best = 60
-      for (const c of contacts) {
+      for (let i = 0; i < contacts.length; i++) {
+        const c = contacts[i]
         if (c.hits < 2) continue
-        const [x, y] = pos(c)
-        const d = Math.hypot(s.mx - x, s.my - y)
+        pos(c, pt)
+        const d = hypot(s.mx - pt[0], s.my - pt[1])
         if (d < best) {
           best = d
           lockTarget = c
@@ -130,17 +148,20 @@ export function createPerception({ pal, seed = 3 }) {
     if (wave) {
       const n = wave.bars.length
       const k = approach(10, dt)
+      // Each contact's phosphor glow is the same for every bar: once per frame.
+      // (Like the hoisted terms below: same operands, same order, same values.)
+      for (let j = 0; j < contacts.length; j++) glow[j] = Math.exp(-(time - contacts[j].hit) * DECAY * 1.6)
+      const t1 = time * 3.1
+      const t2 = time * 1.3
+      const t3 = time * 7.3
+      const lift = e * 0.08
       for (let i = 0; i < n; i++) {
         const u = i / n
-        let v =
-          0.14 +
-          0.1 * Math.sin(i * 0.37 + time * 3.1) * Math.sin(i * 0.11 - time * 1.3) +
-          0.06 * Math.sin(i * 1.7 + time * 7.3) +
-          e * 0.08
-        for (const c of contacts) {
-          const I = Math.exp(-(time - c.hit) * DECAY * 1.6)
+        let v = 0.14 + 0.1 * Math.sin(i * 0.37 + t1) * Math.sin(i * 0.11 - t2) + 0.06 * Math.sin(i * 1.7 + t3) + lift
+        for (let j = 0; j < contacts.length; j++) {
+          const I = glow[j]
           if (I < 0.02) continue
-          const d = (u - c.band) * 22
+          const d = (u - contacts[j].band) * 22
           v += I * 0.75 * Math.exp(-d * d)
         }
         wave.bars[i] += (Math.min(1, Math.max(0.03, v)) - wave.bars[i]) * k
@@ -166,7 +187,8 @@ export function createPerception({ pal, seed = 3 }) {
   function settle(s) {
     for (let i = 0; i < 300; i++) step(1 / 30, s)
     // Make every contact resolved with a spread of phosphor ages.
-    for (const c of contacts) {
+    for (let i = 0; i < contacts.length; i++) {
+      const c = contacts[i]
       c.hits = 2
       const behind = (((a - c.th) % TAU) + TAU) % TAU
       c.hit = time - behind / 1.05
@@ -176,7 +198,8 @@ export function createPerception({ pal, seed = 3 }) {
   }
 
   function readout() {
-    const resolved = contacts.filter((c) => c.hits >= 2).length
+    let resolved = 0
+    for (let i = 0; i < contacts.length; i++) if (contacts[i].hits >= 2) resolved++
     return `Contacts ${pad(contacts.length)} · Resolved ${pad(resolved)}`
   }
 
@@ -206,16 +229,14 @@ export function createPerception({ pal, seed = 3 }) {
     ctx.stroke()
 
     ctx.globalAlpha = grow * 0.32
-    ctx.beginPath()
-    for (let i = 0; i < 72; i++) {
-      const ang = (i / 72) * TAU
-      const len = i % 9 === 0 ? 7 : 3
-      const ca = Math.cos(ang)
-      const sa = Math.sin(ang)
-      ctx.moveTo(cx + ca * (r + 3), cy + sa * (r + 3))
-      ctx.lineTo(cx + ca * (r + 3 + len), cy + sa * (r + 3 + len))
+    if (grow < 1) {
+      ctx.beginPath()
+      ticksPath(ctx, r)
+      ctx.stroke()
+    } else {
+      if (!bearingTicks) ticksPath((bearingTicks = new Path2D()), r)
+      ctx.stroke(bearingTicks)
     }
-    ctx.stroke()
     label(ctx, '000', cx, cy - r - 18, { alpha: grow * 0.45, align: 'center', size: 8 })
     label(ctx, '180', cx, cy + r + 19, { alpha: grow * 0.45, align: 'center', size: 8 })
     label(ctx, '270', cx - r - 14, cy, { alpha: grow * 0.45, align: 'right', size: 8 })
@@ -257,7 +278,8 @@ export function createPerception({ pal, seed = 3 }) {
 
     // Pings
     ctx.strokeStyle = pal.ion.rgb
-    for (const p of pings) {
+    for (let i = 0; i < pings.length; i++) {
+      const p = pings[i]
       ctx.globalAlpha = boot * (1 - p.r) * 0.85
       ctx.lineWidth = 1.5
       ctx.beginPath()
@@ -267,10 +289,13 @@ export function createPerception({ pal, seed = 3 }) {
     ctx.lineWidth = 1
 
     // Contacts
-    for (const c of contacts) {
+    for (let i = 0; i < contacts.length; i++) {
+      const c = contacts[i]
       if (c.hit < -50) continue
       const I = Math.exp(-(time - c.hit) * DECAY) * c.fadeIn * Math.min(1, c.life / 1.5)
-      const [x, y] = pos(c)
+      pos(c, pt)
+      const x = pt[0]
+      const y = pt[1]
       const vis = Math.max(I, c.hits >= 2 ? 0.16 * c.fadeIn * Math.min(1, c.life / 1.5) : 0)
       if (vis < 0.02) continue
       drawGlow(ctx, glowIon, x, y, 9 + I * 9, boot * I * 0.85)
@@ -280,21 +305,23 @@ export function createPerception({ pal, seed = 3 }) {
       if (c.hits >= 2) {
         const ba = boot * (0.22 + 0.6 * I)
         brackets(ctx, x, y, 7, ba, pal.atmo.rgb)
-        label(ctx, `${c.kind}-${c.id}`, x + 11, y - 9, { alpha: ba * 1.1, size: 8, color: pal.ion.rgb })
+        label(ctx, c.tag, x + 11, y - 9, { alpha: ba * 1.1, size: 8, color: pal.ion.rgb })
       }
     }
 
     // Pointer lock
     if (lockAlpha > 0.02 && lockShown) {
-      const [x, y] = pos(lockShown)
+      pos(lockShown, pt)
+      const x = pt[0]
+      const y = pt[1]
       ctx.strokeStyle = pal.text.rgb
       ctx.globalAlpha = boot * lockAlpha * 0.5
-      ctx.setLineDash([2, 3])
+      ctx.setLineDash(LOCK_DASH)
       ctx.beginPath()
       ctx.moveTo(cx, cy)
       ctx.lineTo(x, y)
       ctx.stroke()
-      ctx.setLineDash([])
+      ctx.setLineDash(NO_DASH)
       brackets(ctx, x, y, 12, boot * lockAlpha, pal.text.rgb)
       drawGlow(ctx, glowAtmo, x, y, 22, boot * lockAlpha * 0.6)
       label(ctx, 'LOCK', x + 16, y + 10, { alpha: boot * lockAlpha, size: 8 })
@@ -306,6 +333,17 @@ export function createPerception({ pal, seed = 3 }) {
     ctx.fillRect(cx - 1.5, cy - 1.5, 3, 3)
 
     if (wave) drawWave(ctx, grow, e)
+  }
+
+  function ticksPath(g, r) {
+    for (let i = 0; i < 72; i++) {
+      const ang = (i / 72) * TAU
+      const len = i % 9 === 0 ? 7 : 3
+      const ca = Math.cos(ang)
+      const sa = Math.sin(ang)
+      g.moveTo(cx + ca * (r + 3), cy + sa * (r + 3))
+      g.lineTo(cx + ca * (r + 3 + len), cy + sa * (r + 3 + len))
+    }
   }
 
   function drawWave(ctx, grow, e) {
@@ -321,7 +359,7 @@ export function createPerception({ pal, seed = 3 }) {
     // Baseline + feed line into the scope
     ctx.globalAlpha = grow * 0.18
     ctx.fillRect(x0, y, x1 - x0, 1)
-    dotted(ctx, x1 + 6, y + 0.5, cx - R - 6, y + 0.5, [2, 2], pal.text.rgb, grow * 0.22)
+    dotted(ctx, x1 + 6, y + 0.5, cx - R - 6, y + 0.5, FEED_DASH, pal.text.rgb, grow * 0.22)
     label(ctx, 'SPECTRUM · 0.4–12 GHZ', x0, y - amp - 12, { alpha: grow * 0.5, size: 8 })
   }
 }
@@ -332,7 +370,9 @@ function brackets(ctx, x, y, r, alpha, color) {
   ctx.strokeStyle = color
   ctx.lineWidth = 1
   ctx.beginPath()
-  for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+  for (let i = 0; i < 4; i++) {
+    const sx = CORNER_X[i]
+    const sy = CORNER_Y[i]
     ctx.moveTo(x + sx * r, y + sy * (r - t))
     ctx.lineTo(x + sx * r, y + sy * r)
     ctx.lineTo(x + sx * (r - t), y + sy * r)

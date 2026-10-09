@@ -100,6 +100,10 @@ export function createHeroScene({ root, canvas, state, onReady, onFrame }) {
   const minPR = Math.min(1, dpr)
   // Pixel budget for the full-screen pass, so huge displays stay smooth
   const MAX_PIXELS = byTier({ high: 4.6e6, medium: 2.8e6, low: 1.6e6 })
+  // Two separate limits: what the GPU has proven it can sustain (lowered only
+  // by adapt(), never raised) and the per-size budget (recomputed on every
+  // resize, so leaving fullscreen gets the resolution back).
+  let adaptiveCeiling = maxPR
   let pixelRatio = maxPR
 
   /* ---- 1. full-screen sky / planet pass ---------------------------------- */
@@ -278,7 +282,8 @@ export function createHeroScene({ root, canvas, state, onReady, onFrame }) {
     const rect = canvas.parentElement.getBoundingClientRect()
     cssW = Math.max(1, Math.round(rect.width))
     cssH = Math.max(1, Math.round(rect.height))
-    pixelRatio = Math.min(pixelRatio, Math.max(0.75, Math.sqrt(MAX_PIXELS / (cssW * cssH))))
+    const budget = Math.max(0.75, Math.sqrt(MAX_PIXELS / (cssW * cssH)))
+    pixelRatio = Math.min(adaptiveCeiling, budget)
     renderer.setPixelRatio(pixelRatio)
     renderer.setSize(cssW, cssH, false)
     camera.aspect = cssW / cssH
@@ -432,7 +437,7 @@ export function createHeroScene({ root, canvas, state, onReady, onFrame }) {
     if (frames < 90 || pixelRatio <= minPR) return
     slow = dt > 1 / 42 ? slow + 1 : Math.max(0, slow - 2)
     if (slow > 45) {
-      pixelRatio = Math.max(minPR, pixelRatio - 0.25)
+      adaptiveCeiling = Math.max(minPR, pixelRatio - 0.25)
       slow = 0
       frames = 30
       resize()
@@ -479,11 +484,23 @@ export function createHeroScene({ root, canvas, state, onReady, onFrame }) {
     unobserve = observeVisibility(root, (visible) => visible && redraw())
     ready()
   } else {
-    loop = createRenderLoop(root, (t, dt) => {
-      draw(t, dt)
-      adapt(dt)
-      ready()
-    })
+    // Behind the opaque boot overlay: one warm-up frame (compiles the shaders),
+    // then idle until the page is handed over, so the countdown keeps its frames.
+    const html = document.documentElement
+    const bootCovering = () => html.dataset.boot === 'run' && html.dataset.booted !== 'true'
+    let warmedUp = false
+    loop = createRenderLoop(
+      root,
+      (t, dt) => {
+        if (warmedUp && bootCovering()) return
+        warmedUp = true
+        draw(t, dt)
+        adapt(dt)
+        ready()
+      },
+      // Stop as soon as the last pixel of the hero has scrolled away.
+      { rootMargin: '0px' },
+    )
   }
 
   function destroy() {

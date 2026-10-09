@@ -25,7 +25,7 @@ import { $, $$, clamp, pad } from '../../lib/dom.js'
 import { NEXT_MISSION, COORDINATES } from '../../config.js'
 import { renderBanner, cloneBanner } from './banner.js'
 import { createPrinter, tone } from './printer.js'
-import { createCommands, formatCountdown } from './commands.js'
+import { createCommands, formatCountdown, windowOpen } from './commands.js'
 import { createScope } from './scope.js'
 import { rain } from './rain.js'
 import { liftoff, renderPad } from './liftoff.js'
@@ -118,6 +118,7 @@ export function init() {
     ln: q('ln'),
     mode: q('mode'),
     countdown: q('countdown'),
+    next: q('next'),
   }
   const setText = (node, text) => {
     if (node && node.textContent !== text) node.textContent = text
@@ -309,8 +310,11 @@ export function init() {
     el.caret.textContent = start === end ? value[start] || ghost[0] || '\u00a0' : '\u00a0'
     el.ghost.textContent = ghost.slice(1)
     root.classList.toggle('has-selection', start !== end)
-    el.overlay.style.transform = input.scrollLeft ? `translateX(${-input.scrollLeft}px)` : ''
+    el.overlay.style.transform = input.scrollLeft ? `translateX(${-input.scrollLeft * fieldScale()}px)` : ''
   }
+  // On touch the input is laid out at 16px (no iOS focus zoom) and scaled down
+  // to the console's type size; its scrollLeft is in those unscaled pixels.
+  const fieldScale = () => parseFloat(getComputedStyle(el.overlay).fontSize) / parseFloat(getComputedStyle(el.input).fontSize) || 1
   // Keydown fires before the input's value / selection change, so defer one tick.
   const requestSync = () => {
     if (!syncTimer) syncTimer = setTimeout(syncCaret, 0)
@@ -527,6 +531,8 @@ export function init() {
     const s = Math.floor((performance.now() - arrivedAt) / 1000)
     setText(read.session, `${pad(s / 3600)}:${pad((s % 3600) / 60)}:${pad(s % 60)}`)
     setText(read.countdown, formatCountdown(now.getTime()))
+    // The count holds at T−0 once the target passes; the label says why.
+    setText(read.next, windowOpen(now.getTime()) ? 'Window open · awaiting update' : 'Next window')
   }
   tick()
   let clock = 0

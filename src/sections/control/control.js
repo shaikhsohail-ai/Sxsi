@@ -16,7 +16,7 @@ import { SplitText } from 'gsap/SplitText'
 import { emit } from '../../lib/bus.js'
 import { reducedMotion } from '../../lib/quality.js'
 import { observeVisibility } from '../../lib/visibility.js'
-import { $, $$, pad } from '../../lib/dom.js'
+import { $, $$, pad, clamp } from '../../lib/dom.js'
 import { COORDINATES } from '../../config.js'
 import { mountViz, readPalette } from './viz/core.js'
 import { createReasoning } from './viz/reasoning.js'
@@ -174,13 +174,19 @@ function initCrosshair(tile, mount) {
     y: gsap.quickTo(follow, 'y', { ...lag, onUpdate: () => toY(follow.y) }),
   }
   let entered = false
+  let over = false
+  // Last pointer position (viewport px) and the tile's page box, so a scroll
+  // under a resting pointer can re-aim without another layout read.
+  let clientX = 0
+  let clientY = 0
+  let pageLeft = 0
+  let pageTop = 0
+  let width = 1
+  let height = 1
 
-  tile.addEventListener('pointermove', (event) => {
-    if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') return
-    // Rect read in a pointer handler (not scroll): layout is clean here, we only write transforms.
-    const rect = tile.getBoundingClientRect()
-    const x = event.clientX - rect.left
-    const y = event.clientY - rect.top
+  const aim = () => {
+    const x = clientX - (pageLeft - window.scrollX)
+    const y = clientY - (pageTop - window.scrollY)
     mount.setPointer(true, x, y)
     // Feeds the CSS pointer light (lit edge + console-glass spotlight).
     tile.style.setProperty('--control-tx', `${x}px`)
@@ -196,11 +202,34 @@ function initCrosshair(tile, mount) {
     }
     ease.x(x)
     ease.y(y)
-    text.textContent = `X ${pad((x / rect.width) * 1000, 3)} · Y ${pad((y / rect.height) * 1000, 3)}`
-  })
+    text.textContent = `X ${pad(clamp(x / width, 0, 0.999) * 1000, 3)} · Y ${pad(clamp(y / height, 0, 0.999) * 1000, 3)}`
+  }
+
+  const place = (event) => {
+    if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') return
+    // Rect read in a pointer handler (not scroll): layout is clean here, we only write transforms.
+    const rect = tile.getBoundingClientRect()
+    pageLeft = rect.left + window.scrollX
+    pageTop = rect.top + window.scrollY
+    width = rect.width || 1
+    height = rect.height || 1
+    clientX = event.clientX
+    clientY = event.clientY
+    over = true
+    aim()
+  }
+
+  // Enter places it too: a tile can scroll under a resting mouse, and no
+  // pointermove fires until the mouse moves. (Registered before the tile's own
+  // pointerenter, so everything is in place before .is-hover shows the layer.)
+  tile.addEventListener('pointerenter', place)
+  tile.addEventListener('pointermove', place)
   tile.addEventListener('pointerleave', () => {
+    over = false
     entered = false
   })
+  // While the page scrolls under a resting pointer, keep the crosshair on it.
+  window.addEventListener('scroll', () => over && aim(), { passive: true })
 }
 
 /** Big node counter in the SCALE tile (+ the ribbon's NODES readout). */
@@ -259,7 +288,7 @@ function createMeter(root) {
     if (count) count.textContent = pad(on.size)
     rows.forEach((row, i) => row.classList.toggle('is-on', on.has(names[i])))
     box?.classList.toggle('is-standby', on.size < total)
-    if (status) status.textContent = on.size >= total ? 'All systems nominal' : on.size ? 'Power-on sequence' : 'Standby'
+    if (status) status.textContent = on.size >= total ? 'All simulations nominal' : on.size ? 'Power-on sequence' : 'Standby'
   }
 
   if (!reducedMotion) {

@@ -183,6 +183,25 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Label row: "Systems online" with the board's "Simulated" tag at its end */
+.s-control__systems-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+  max-width: 300px;
+}
+
+/* Same voice as the ribbon's "Simulated telemetry" tag */
+.s-control .s-control__simtag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75em;
+  color: var(--c-text);
+  white-space: nowrap;
+}
+
 .s-control__systems-count {
   margin-top: 0.55rem;
   font-family: var(--font-mono);
@@ -296,6 +315,13 @@
   box-shadow: none;
 }
 
+/* Touch: each system link is a full 44px target */
+@media (pointer: coarse) {
+  .s-control__sysrow a {
+    min-height: 44px;
+  }
+}
+
 @media (min-width: 720px) {
   .s-control__head-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -353,7 +379,9 @@
   white-space: nowrap;
 }
 
-.s-control__ribbon-dot {
+.s-control__ribbon-dot,
+.s-control__simtag::before {
+  content: '';
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -459,19 +487,97 @@
   border-block: 4.5px solid transparent;
 }
 
-.s-control.is-held .s-control__ribbon-dot {
+.s-control.is-held .s-control__ribbon-dot,
+.s-control.is-held .s-control__simtag::before {
   animation: none;
   background: var(--c-text-faint);
   box-shadow: none;
 }
 
-/* Under reduced motion (or no JS) the ticker is a still, scrollable strip. */
-.s-control.is-static .s-control__ticker,
-html:not(.js) .s-control__ticker {
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-mask-image: none;
-  mask-image: none;
+/* Reduced motion or no JS: the ticker is a still board instead — every
+   reading laid out once on an aligned grid that wraps onto as many rows as it
+   needs, nothing clipped at the edge and nothing to scroll. Same layout before
+   and after control.js runs. (:not(.is-marquee): a marquee that is already
+   running, built before reduced motion was switched on, keeps its strip.) */
+@media (prefers-reduced-motion: reduce), (scripting: none) {
+  .s-control:not(.is-marquee) .s-control__ribbon {
+    height: auto;
+    min-height: 48px;
+  }
+
+  .s-control:not(.is-marquee) .s-control__ticker {
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  /* As many columns as fit, capped at --control-tlm-cols so the nine readings
+     always land as an even block (3 × 3, or 5 + 4 on wide screens). */
+  .s-control:not(.is-marquee) .s-control__track {
+    --control-tlm-min: 10.5rem;
+    --control-tlm-gap: 2rem;
+    --control-tlm-cols: 3;
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-columns: repeat(
+      auto-fill,
+      minmax(
+        min(100%, max(var(--control-tlm-min), (100% - var(--control-tlm-cols) * var(--control-tlm-gap)) / (var(--control-tlm-cols) + 1) + 1px)),
+        1fr
+      )
+    );
+    gap: 0.6rem var(--control-tlm-gap);
+    width: auto;
+    min-width: 0;
+    padding: 0.95rem var(--gutter) 0.95rem 1.6rem;
+    transform: none;
+    will-change: auto;
+  }
+
+  .s-control:not(.is-marquee) .s-control__tlm {
+    padding-right: 0;
+  }
+
+  /* Separators belong to the moving strip (as do its aria-hidden loop copies,
+     which telemetry.js only creates alongside .is-marquee). */
+  .s-control:not(.is-marquee) .s-control__tlm::after {
+    content: none;
+  }
+
+  @media (max-width: 719px) {
+    /* Still board on phones: the tag gets its own row (room for the full
+       label) and the readings take the whole width, two or three to a row. */
+    .s-control:not(.is-marquee) .s-control__ribbon {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .s-control:not(.is-marquee) .s-control__ribbon-tag {
+      min-height: 44px;
+      padding-right: var(--gutter);
+      border-right: 0;
+      border-bottom: 1px solid var(--c-line);
+    }
+
+    .s-control:not(.is-marquee) .s-control__ribbon-tag-long {
+      display: inline;
+    }
+
+    .s-control:not(.is-marquee) .s-control__ribbon-tag-short {
+      display: none;
+    }
+
+    .s-control:not(.is-marquee) .s-control__track {
+      --control-tlm-min: 9.5rem;
+      --control-tlm-gap: 1.25rem;
+      padding-inline: var(--gutter);
+    }
+  }
+
+  @media (min-width: 1360px) {
+    .s-control:not(.is-marquee) .s-control__track {
+      --control-tlm-cols: 5;
+    }
+  }
 }
 
 /* ---- Bento grid ------------------------------------------------------------ */
@@ -858,6 +964,10 @@ html:not(.js) .s-control__ticker {
     padding-left: 1rem;
   }
 
+  .s-control__sysrow a {
+    font-size: var(--fs-micro);
+  }
+
   .s-control__tile--reasoning { --control-tile-h: 500px; }
   .s-control__tile--memory { --control-tile-h: 430px; }
   .s-control__tile--perception { --control-tile-h: 470px; }
@@ -988,14 +1098,8 @@ html.js .s-control.is-static .s-control__tile {
     animation: none;
   }
 
-  .s-control__ticker {
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-
-  .s-control__ribbon-dot {
+  .s-control__ribbon-dot,
+  .s-control__simtag::before {
     animation: none;
   }
 }

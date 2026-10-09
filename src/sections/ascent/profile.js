@@ -161,6 +161,21 @@ export const LAYERS = ['Troposphere', 'Stratosphere', 'Mesosphere', 'Thermospher
 const LAYER_TOPS = [12, 50, 85]
 
 const ramp = (p, a, b) => clamp((p - a) / (b - a))
+/** Smoothstep of x between a and b. */
+export const smooth = (a, b, x) => {
+  const t = clamp((x - a) / (b - a))
+  return t * t * (3 - 2 * t)
+}
+
+/** Pitch-over from vertical (radians): the gravity turn, flown by the scene and its static rendition. */
+export function pitchAt(p) {
+  return (
+    0.26 * smooth(0.12, BEATS.maxq, p) +
+    0.18 * smooth(BEATS.maxq, BEATS.meco, p) +
+    0.28 * smooth(BEATS.ses, BEATS.seco, p) +
+    0.08 * smooth(BEATS.seco, 1, p)
+  )
+}
 
 /** Engine throttle 0–100 %, including the classic Max-Q "throttle bucket". */
 export function throttleAt(p) {

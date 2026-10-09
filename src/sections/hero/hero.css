@@ -4,7 +4,9 @@
    which the sun crests the limb (scrubbed in hero.js).
    ========================================================================== */
 .s-hero {
-  --s-hero-runway: 90vh;
+  /* Scroll the sunrise takes. Short enough that the mission arrives while the
+     sun is still cresting; the scrub in hero.js is progress-based. */
+  --s-hero-runway: 58vh;
   /* frame furniture aligns with the shared .container edge on wide screens */
   --s-hero-pad-x: max(var(--gutter), calc((100% - var(--maxw)) / 2 + var(--gutter)));
   --s-hero-safe-bottom: 0px; /* chrome-covered strip of the frame on mobile */
@@ -73,9 +75,10 @@ html:not(.js) .s-hero {
   background: linear-gradient(0deg, var(--c-void) 0%, var(--c-void) 4%, rgba(0, 0, 0, 0.72) 13%, rgba(0, 0, 0, 0.3) 24%, transparent 36%);
 }
 
-/* Static rendition: shown without JS, without WebGL, or if the scene fails */
+/* Static rendition: shown without JS, without WebGL, if the scene fails, and
+   as the poster frame while the scene loads */
 .s-hero__fallback {
-  --s-hero-limb-y: 66%;
+  --s-hero-limb-y: 71%; /* steps with the aspect ratio below */
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -85,9 +88,12 @@ html:not(.js) .s-hero {
   transition: opacity 1.2s var(--ease-out);
 }
 
-html.js .s-hero:not(.is-fallback) .s-hero__fallback {
+/* The canvas is opaque and fades in above it (1.4s): the poster stays put
+   underneath, then drops out once covered, so the cross-fade never dips */
+html.js .s-hero.is-webgl .s-hero__fallback {
   opacity: 0;
   visibility: hidden;
+  transition: opacity 0s 1.4s, visibility 0s 1.4s;
 }
 
 .s-hero__fb-stars {
@@ -142,7 +148,7 @@ html.js .s-hero:not(.is-fallback) .s-hero__fallback {
   margin-left: -170vmax;
   border-radius: 50%;
   overflow: hidden; /* the lights stay on the disc */
-  transform: rotate(-4deg);
+  transform: rotate(-5deg);
   transform-origin: 50% 0;
   background:
     radial-gradient(14% 1.4% at 58% 0%, rgba(255, 170, 110, 0.32), transparent 100%),
@@ -192,6 +198,44 @@ html.js .s-hero:not(.is-fallback) .s-hero__fallback {
   mix-blend-mode: screen;
 }
 
+/* The poster stands in for the WebGL frame until it is ready, so its limb
+   follows scene.js framing(): the horizon rises from 71% to 65% of the frame
+   (and curves more) as the aspect ratio narrows. Keyed to aspect, not width,
+   so landscape phones get the wide framing like the scene does. */
+@media (max-aspect-ratio: 4/3) {
+  .s-hero__fallback {
+    --s-hero-limb-y: 70%;
+  }
+}
+
+@media (max-aspect-ratio: 1/1) {
+  .s-hero__fallback {
+    --s-hero-limb-y: 67.5%;
+  }
+}
+
+@media (max-aspect-ratio: 3/4) {
+  .s-hero__fallback {
+    --s-hero-limb-y: 65.5%;
+  }
+
+  .s-hero__fb-planet {
+    width: 230vmax;
+    margin-left: -115vmax;
+    transform: rotate(-4deg);
+  }
+
+  .s-hero__fb-lights {
+    width: 58%;
+  }
+}
+
+@media (max-aspect-ratio: 3/5) {
+  .s-hero__fallback {
+    --s-hero-limb-y: 65%;
+  }
+}
+
 /* ---- Sun reticle --------------------------------------------------------- */
 .s-hero__reticle {
   position: absolute;
@@ -208,7 +252,7 @@ html.js .s-hero:not(.is-fallback) .s-hero__fallback {
   display: block;
 }
 
-.s-hero__reticle-box {
+.s-hero .s-hero__reticle-box {
   --tick: 9px;
   --tick-color: rgba(244, 246, 251, 0.6);
   position: absolute;
@@ -266,7 +310,7 @@ html.js .s-hero:not(.is-fallback) .s-hero__fallback {
   pointer-events: none;
 }
 
-.s-hero__hud-item {
+.s-hero .s-hero__hud-item {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -307,14 +351,19 @@ html.js .s-hero:not(.is-fallback) .s-hero__fallback {
   color: var(--c-text-faint);
 }
 
-.s-hero__sim {
+/* Site-wide disclosure tag (identical in every section). */
+.s-hero .s-hero__sim {
   align-self: flex-start;
-  font-size: 0.6rem;
-  letter-spacing: var(--tracking-label);
-  color: var(--s-hero-label);
-  border: 1px solid var(--c-line);
-  padding: 2px 6px 1px;
   margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  line-height: 1;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--c-text-dim);
+  border: 1px solid var(--c-line-strong);
+  padding: 3px 6px 2px;
+  border-radius: var(--radius);
 }
 
 .s-hero__hud-item--end .s-hero__sim {
@@ -346,13 +395,14 @@ html.js .s-hero:not(.is-fallback) .s-hero__fallback {
   margin-bottom: clamp(18px, 2.8vh, 30px);
 }
 
-.s-hero__eyebrow::before {
+.s-hero .s-hero__eyebrow::before {
   background: var(--c-atmo);
   opacity: 1;
   box-shadow: var(--glow-atmo);
 }
 
-.s-hero__title {
+/* scoped: the shared .h1 rule is emitted after section CSS and would win */
+.s-hero .s-hero__title {
   font-size: clamp(2.4rem, min(6.5vw, 11.6vh), 7.6rem);
   font-weight: 640;
   line-height: 0.9;
@@ -411,7 +461,7 @@ html.js .s-hero:not(.is-fallback) .s-hero__fallback {
 }
 
 /* Next-launch chip */
-.s-hero__launch {
+.s-hero .s-hero__launch {
   --tick: 9px;
   --tick-color: rgba(244, 246, 251, 0.5);
   justify-self: start;
@@ -437,10 +487,19 @@ html.js .s-hero:not(.is-fallback) .s-hero__fallback {
   letter-spacing: var(--tracking-label);
 }
 
-.s-hero__launch-pad {
+/* A target window, not a live event: steady atmospheric dot, no pulse */
+.s-hero__launch-head .s-hero__launch-status::before {
+  background: var(--c-atmo);
+  box-shadow: 0 0 8px rgba(111, 195, 255, 0.6);
+  animation: none;
+}
+
+.s-hero .s-hero__launch-pad {
+  flex-shrink: 0;
   font-size: 0.64rem;
   color: var(--s-hero-label);
   letter-spacing: var(--tracking-label);
+  white-space: nowrap;
 }
 
 .s-hero__launch-name {
@@ -463,7 +522,8 @@ html.js .s-hero:not(.is-fallback) .s-hero__fallback {
 }
 
 html:not(.js) .s-hero__clock,
-html:not(.js) .s-hero__met {
+html:not(.js) .s-hero__met,
+.s-hero .s-hero__clock[hidden] {
   display: none;
 }
 
@@ -502,7 +562,7 @@ html:not(.js) .s-hero__met {
   color: var(--c-text-faint);
 }
 
-.s-hero__launch-date {
+.s-hero .s-hero__launch-date {
   font-size: 0.64rem;
   color: var(--s-hero-label);
   letter-spacing: var(--tracking-label);
@@ -512,11 +572,6 @@ html:not(.js) .s-hero__met {
 
 html.js .s-hero__clock + .s-hero__launch-date {
   margin-top: 2px;
-}
-
-.s-hero.is-launched .s-hero__clock-sign {
-  color: var(--c-ok);
-  text-shadow: none;
 }
 
 /* Scroll cue */
@@ -616,7 +671,8 @@ html.js .s-hero:not(.is-armed) [data-hero-bottom] > * {
 
 /* ---- Reduced motion: everything visible, no runway, still frame ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .s-hero {
+  /* (html: outranks the per-breakpoint runways below) */
+  html .s-hero {
     --s-hero-runway: 0px;
   }
 
@@ -651,7 +707,7 @@ html.js .s-hero:not(.is-armed) [data-hero-bottom] > * {
 }
 
 @media (max-aspect-ratio: 1/1) and (min-width: 721px) {
-  .s-hero__title {
+  .s-hero .s-hero__title {
     font-size: min(8.4vw, 7.6rem);
   }
 }
@@ -659,21 +715,8 @@ html.js .s-hero:not(.is-armed) [data-hero-bottom] > * {
 /* ---- Phone: recomposed, type stacked above a lower, larger limb ---------- */
 @media (max-width: 720px) {
   .s-hero {
-    --s-hero-runway: 70vh;
+    --s-hero-runway: 48vh;
     --s-hero-pad-x: 20px;
-  }
-
-  .s-hero__fallback {
-    --s-hero-limb-y: 70%;
-  }
-
-  .s-hero__fb-planet {
-    width: 230vmax;
-    margin-left: -115vmax;
-  }
-
-  .s-hero__fb-lights {
-    width: 58%;
   }
 
   .s-hero__hud {
@@ -690,28 +733,25 @@ html.js .s-hero:not(.is-armed) [data-hero-bottom] > * {
     font-size: 0.64rem;
   }
 
-  .s-hero__hud-item {
+  .s-hero .s-hero__hud-item {
     gap: 5px;
   }
 
-  .s-hero__sim {
-    font-size: 0.5rem;
-    padding: 1px 5px 0;
+  /* the disclosure tag keeps its site-wide size; only the spacing tightens */
+  .s-hero .s-hero__sim {
     margin-top: 0;
   }
 
   .s-hero__content {
-    align-items: flex-start;
-    padding-top: calc(var(--nav-h) + clamp(44px, 7vh, 84px));
-    padding-bottom: 0;
+    /* clears the two-row HUD (value + tag) above the eyebrow */
+    padding-top: calc(var(--nav-h) + clamp(52px, 7vh, 84px));
   }
 
   .s-hero__eyebrow {
-    font-size: 0.64rem;
     margin-bottom: 18px;
   }
 
-  .s-hero__title {
+  .s-hero .s-hero__title {
     font-size: min(10.4vw, 3.4rem);
     line-height: 0.94;
   }
@@ -729,19 +769,14 @@ html.js .s-hero:not(.is-armed) [data-hero-bottom] > * {
     margin-top: 28px;
   }
 
-  .s-hero__cta {
+  .s-hero .s-hero__cta {
     min-height: 48px;
     justify-content: space-between;
     padding-inline: 22px;
   }
 
-  .s-hero__cta:not(:has(.btn__arrow)) {
+  .s-hero .s-hero__cta:not(:has(.btn__arrow)) {
     justify-content: center;
-  }
-
-  .s-hero__bottom {
-    grid-template-columns: 1fr;
-    bottom: calc(var(--s-hero-safe-bottom) + 16px);
   }
 
   .s-hero__cue,
@@ -750,7 +785,7 @@ html.js .s-hero:not(.is-armed) [data-hero-bottom] > * {
     display: none;
   }
 
-  .s-hero__launch {
+  .s-hero .s-hero__launch {
     justify-self: stretch;
     gap: 6px;
     padding: 11px 14px 10px;
@@ -758,10 +793,6 @@ html.js .s-hero:not(.is-armed) [data-hero-bottom] > * {
 
   .s-hero__launch-name {
     font-size: 0.7rem;
-  }
-
-  html.js .s-hero__launch-date {
-    display: none;
   }
 
   .s-hero__clock {
@@ -790,17 +821,17 @@ html.js .s-hero:not(.is-armed) [data-hero-bottom] > * {
   }
 
   /* one line each: values + tag side by side, mirrored on the right */
-  .s-hero__hud-item {
+  .s-hero .s-hero__hud-item {
     flex-direction: row;
     align-items: center;
     gap: 14px;
   }
 
-  .s-hero__hud-item--end {
+  .s-hero .s-hero__hud-item--end {
     flex-direction: row-reverse;
   }
 
-  .s-hero__sim {
+  .s-hero .s-hero__sim {
     margin-top: 0;
   }
 
@@ -808,7 +839,7 @@ html.js .s-hero:not(.is-armed) [data-hero-bottom] > * {
     padding-top: calc(var(--nav-h) + 44px);
   }
 
-  .s-hero__title {
+  .s-hero .s-hero__title {
     font-size: clamp(2.4rem, min(6.5vw, 10vh), 7.6rem);
   }
 
@@ -824,12 +855,11 @@ html.js .s-hero:not(.is-armed) [data-hero-bottom] > * {
     margin-top: 26px;
   }
 
-  html.js .s-hero__launch-date,
   .s-hero__met-note {
     display: none;
   }
 
-  .s-hero__launch {
+  .s-hero .s-hero__launch {
     gap: 6px;
     padding: 11px 16px 10px;
   }
@@ -843,6 +873,208 @@ html.js .s-hero:not(.is-armed) [data-hero-bottom] > * {
 @media (max-height: 620px) and (min-width: 721px) {
   .s-hero__met,
   .s-hero__cue {
+    display: none;
+  }
+
+  html.js .s-hero .s-hero__launch-date {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* ---- Compact frames: phones and short landscape screens ----------------------
+   Copy and bottom bar share one grid in the sticky frame, so they can never
+   overlap: when height runs out the bar is pushed past the bottom edge rather
+   than over the CTAs. */
+@media (max-width: 720px), (orientation: landscape) and (max-height: 540px) {
+  .s-hero__frame {
+    display: grid;
+    grid-template-rows: 1fr auto;
+    padding-bottom: calc(var(--s-hero-safe-bottom) + 16px);
+  }
+
+  .s-hero__content {
+    position: relative;
+    inset: auto;
+    grid-row: 1;
+    align-items: flex-start;
+    padding-bottom: 16px; /* least air between the CTAs and the bar */
+  }
+
+  .s-hero__bottom {
+    position: relative;
+    grid-row: 2;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    grid-template-columns: 1fr;
+    margin-inline: var(--s-hero-pad-x);
+  }
+
+  /* The ghost CTA can land on the bright limb here: give it a dark glass fill */
+  .s-hero .s-hero__cta--ghost {
+    --btn-bg: rgba(0, 0, 0, 0.6);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+
+  /* Phones show no date line; screen readers still get it */
+  html.js .s-hero .s-hero__launch-date {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* ---- Short frames: the window card folds to one line ------------------------ */
+@media (max-width: 720px) and (max-height: 640px), (orientation: landscape) and (max-height: 540px) {
+  .s-hero .s-hero__launch {
+    grid-template-columns: auto auto;
+    align-items: center;
+    justify-content: space-between;
+    column-gap: 12px;
+    padding: 9px 12px 8px;
+  }
+
+  .s-hero__launch-head .status {
+    letter-spacing: var(--tracking-wide);
+    white-space: nowrap;
+  }
+
+  .s-hero__launch-pad {
+    display: none;
+  }
+
+  .s-hero .s-hero__launch-name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .s-hero .s-hero__clock {
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px;
+    margin-top: 0;
+  }
+
+  .s-hero .s-hero__clock-num,
+  .s-hero .s-hero__clock-sign {
+    font-size: 1rem;
+  }
+
+  .s-hero .s-hero__clock-sign {
+    margin-right: 4px;
+  }
+
+  .s-hero .s-hero__clock-colon {
+    font-size: 0.9rem;
+    line-height: 1;
+  }
+
+  .s-hero .s-hero__clock-cap {
+    display: none;
+  }
+
+  /* No JS, no clock: the date line takes its place, under the label */
+  html:not(.js) .s-hero .s-hero__launch {
+    grid-template-columns: auto;
+    row-gap: 6px;
+  }
+}
+
+/* ---- Landscape phones / very short windows: copy column, one-line HUD -------- */
+@media (orientation: landscape) and (max-height: 540px) {
+  .s-hero.is-webgl .s-hero__reticle {
+    display: none;
+  }
+
+  /* Only the orbit readout stays (with its tag), clear of the copy column */
+  .s-hero__hud {
+    top: calc(var(--nav-h) + 8px);
+    left: auto;
+  }
+
+  .s-hero__hud-item:not(.s-hero__hud-item--end),
+  .s-hero__hud .s-hero__hud-label {
+    display: none;
+  }
+
+  .s-hero .s-hero__hud-item {
+    flex-direction: row-reverse;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .s-hero .s-hero__sim {
+    margin-top: 0;
+  }
+
+  .s-hero__content {
+    padding-top: calc(var(--nav-h) + 36px);
+    padding-bottom: 12px;
+  }
+
+  .s-hero__eyebrow {
+    margin-bottom: 10px;
+  }
+
+  .s-hero .s-hero__title {
+    font-size: max(1.75rem, min(9.5vh, 8vw));
+    line-height: 0.9;
+  }
+
+  .s-hero__sub {
+    max-width: 62ch;
+    margin-top: 10px;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    /* the limb rides close under the copy on the shortest screens */
+    text-shadow: 0 0 12px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 0.8);
+  }
+
+  .s-hero__ctas {
+    flex-direction: row;
+    align-items: center;
+    max-width: none;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .s-hero .s-hero__cta {
+    min-height: 44px;
+    padding-inline: 22px;
+  }
+
+  .s-hero__frame {
+    padding-bottom: calc(var(--s-hero-safe-bottom) + 12px);
+  }
+
+  .s-hero .s-hero__launch {
+    justify-self: start;
+  }
+}
+
+/* Too short for the card as well: the CTAs keep the frame */
+@media (orientation: landscape) and (max-height: 340px) {
+  .s-hero .s-hero__launch {
     display: none;
   }
 }

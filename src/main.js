@@ -1,5 +1,5 @@
 import './styles/index.css'
-import { initMotion, lockScroll, restoreScroll, settleScroll, sortTriggers, ScrollTrigger } from './lib/motion.js'
+import { initMotion, keepTriggersSorted, lockScroll, restoreScroll, settleScroll, sortTriggers, ScrollTrigger } from './lib/motion.js'
 import { markBooted } from './lib/bus.js'
 
 // Scroll restoring is ours (see "Reading position" in lib/motion.js): pins add
@@ -78,11 +78,9 @@ async function start() {
   ScrollTrigger.refresh()
 
   // A breakpoint flip (resize, rotation) rebuilds that query's pins at the end of
-  // ScrollTrigger's list: re-sort so every trigger below them includes their spacing.
-  ScrollTrigger.addEventListener('matchMedia', () => {
-    sortTriggers()
-    ScrollTrigger.refresh()
-  })
+  // ScrollTrigger's list: from here on every refresh re-sorts first, so the triggers
+  // below them include their spacing.
+  keepTriggersSorted()
 
   // Land #deep-links and reloads on their section now that the pins exist.
   settleScroll()
@@ -98,5 +96,10 @@ function dismissBoot() {
 
 start()
 
-// Safety net: never leave the page waiting on a boot sequence that stalled.
-setTimeout(markBooted, 6000)
+// Safety net: never leave the page waiting on a boot sequence that stalled. A boot
+// still on screen calls markBooted itself on every exit, so it gets one extension.
+let bootGrace = 1
+setTimeout(function bootSafetyNet() {
+  if (document.documentElement.dataset.boot === 'run' && bootGrace-- > 0) setTimeout(bootSafetyNet, 6000)
+  else markBooted()
+}, 6000)

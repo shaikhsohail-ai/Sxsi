@@ -13,13 +13,15 @@
  */
 import { seededRandom } from '../../../lib/dom.js'
 import { byTier } from '../../../lib/quality.js'
-import { glowSprite, drawGlow, label, easeOut, rectBatch, TAU } from './core.js'
+import { glowSprite, drawGlow, label, easeOut, rectBatch, TAU, NO_DASH, hypot } from './core.js'
 
 const ZOOM_RATE = 0.05 // 1/s, continuous zoom-out
 const LINK_TIME = 0.6
 const ABSORB = 0.085 // normalised radius where nodes are absorbed by the core
 const ARMS = 3
 const PITCH = 0.3 // log-spiral tightness: r = a·e^(PITCH·θ)
+const GUIDE_DASH = [2, 6]
+const SEED_DASH = [2, 4]
 
 export function createScale({ pal, seed = 6 }) {
   const rand = seededRandom(seed * 7727)
@@ -45,9 +47,13 @@ export function createScale({ pal, seed = 6 }) {
   let burst = 0 // nodes still to spawn quickly (seed)
   let seedAt = null
   let ready = false
-  const nodes = [] // { x, y (world, unit disc), arm, born, hub, dead, tw }
+  // World positions only change when renormalised, so each keeps its radius (r).
+  const nodes = [] // { x, y (world, unit disc), r, arm, born, hub, dead, tw }
   const links = [] // { a, b, born }
-  const dust = [] // { x, y }
+  const dust = [] // { x, y, r }
+  // Per-frame scratch: links still drawing in, with their progress
+  const growing = []
+  const growingK = []
 
   const api = {
     status: 'Expanding',
@@ -91,7 +97,7 @@ export function createScale({ pal, seed = 6 }) {
 
   /** Normalised on-screen disc radius of a world point (1 = rim). */
   function rhoOf(n) {
-    return Math.hypot(n.x, n.y) * z
+    return n.r * z
   }
 
   /** A world point on arm `arm` at on-screen disc radius `rho` (with scatter). */
@@ -99,7 +105,9 @@ export function createScale({ pal, seed = 6 }) {
     const r = rho / z
     const th = Math.log(r / a) / PITCH + (arm * TAU) / ARMS + (rand() - 0.5) * scatter
     const rr = r * (1 + (rand() - 0.5) * scatter * 0.35)
-    return { x: Math.cos(th) * rr, y: Math.sin(th) * rr }
+    const x = Math.cos(th) * rr
+    const y = Math.sin(th) * rr
+    return { x, y, r: hypot(x, y) }
   }
 
   /* ---- Growth ------------------------------------------------------------------------ */
@@ -109,13 +117,15 @@ export function createScale({ pal, seed = 6 }) {
     if (near) {
       const ang = rand() * TAU
       const d = 8 + rand() * 30
-      p = { x: (near.x + Math.cos(ang) * d - cx) / (z * ex), y: (near.y + Math.sin(ang) * d - cy) / (z * ey) }
+      const x = (near.x + Math.cos(ang) * d - cx) / (z * ex)
+      const y = (near.y + Math.sin(ang) * d - cy) / (z * ey)
+      p = { x, y, r: hypot(x, y) }
     } else {
       arm = Math.floor(rand() * ARMS)
       p = onArm(arm, 0.55 + 0.45 * Math.sqrt(rand()), 0.26)
     }
-    if (Math.hypot(p.x, p.y) * z < ABSORB * 2.5) return
-    const node = { x: p.x, y: p.y, arm, born: time, hub: rand() < 0.07, dead: -1, tw: rand() * TAU }
+    if (p.r * z < ABSORB * 2.5) return
+    const node = { x: p.x, y: p.y, r: p.r, arm, born: time, hub: rand() < 0.07, dead: -1, tw: rand() * TAU }
 
     // Link to the nearest live node on the same arm (or any, for seeded growth),
     // within a short reach — filaments, not spaghetti.
@@ -129,7 +139,7 @@ export function createScale({ pal, seed = 6 }) {
     for (let i = nodes.length - 1, seen = 0; i >= 0 && seen < 140; i--, seen++) {
       const n = nodes[i]
       if (n.dead >= 0) continue
-      const d = Math.hypot(sx(n) - px, sy(n) - py)
+      const d = hypot(sx(n) - px, sy(n) - py)
       if ((arm < 0 || n.arm === arm) && d < bestD) {
         bestD = d
         best = n
@@ -156,13 +166,17 @@ export function createScale({ pal, seed = 6 }) {
     z *= Math.exp(-ZOOM_RATE * dt * (1 + e * 0.6))
     // Renormalise so world coordinates never blow up (the picture is unchanged).
     if (z < 0.25) {
-      for (const n of nodes) {
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i]
         n.x *= z
         n.y *= z
+        n.r = hypot(n.x, n.y)
       }
-      for (const d of dust) {
+      for (let i = 0; i < dust.length; i++) {
+        const d = dust[i]
         d.x *= z
         d.y *= z
+        d.r = hypot(d.x, d.y)
       }
       a *= z
       z = 1
@@ -187,7 +201,7 @@ export function createScale({ pal, seed = 6 }) {
     }
 
     // Absorb what has sunk into the core; drop the dead.
-    for (const n of nodes) if (n.dead < 0 && rhoOf(n) < ABSORB) retire(n)
+    for (let i = 0; i < nodes.length; i++) if (nodes[i].dead < 0 && rhoOf(nodes[i]) < ABSORB) retire(nodes[i])
     for (let k = nodes.length - 1; k >= 0; k--) {
       if (nodes[k].dead >= 0 && time - nodes[k].dead > 0.8) nodes.splice(k, 1)
     }
@@ -195,7 +209,7 @@ export function createScale({ pal, seed = 6 }) {
       const l = links[k]
       if ((l.a.dead >= 0 && time - l.a.dead > 0.8) || (l.b.dead >= 0 && time - l.b.dead > 0.8)) links.splice(k, 1)
     }
-    for (let k = dust.length - 1; k >= 0; k--) if (Math.hypot(dust[k].x, dust[k].y) * z < ABSORB * 0.7) dust.splice(k, 1)
+    for (let k = dust.length - 1; k >= 0; k--) if (dust[k].r * z < ABSORB * 0.7) dust.splice(k, 1)
   }
 
   function step(dt, s) {
@@ -232,7 +246,7 @@ export function createScale({ pal, seed = 6 }) {
     // Disc guides: two orbits of the inclined disc
     ctx.strokeStyle = pal.atmo.rgb
     ctx.lineWidth = 1
-    ctx.setLineDash([2, 6])
+    ctx.setLineDash(GUIDE_DASH)
     ctx.globalAlpha = grow * 0.14
     ctx.beginPath()
     ctx.ellipse(cx, cy, ex * 0.5, ey * 0.5, 0, 0, TAU)
@@ -241,7 +255,7 @@ export function createScale({ pal, seed = 6 }) {
     ctx.beginPath()
     ctx.ellipse(cx, cy, ex * 1.02, ey * 1.02, 0, 0, TAU)
     ctx.stroke()
-    ctx.setLineDash([])
+    ctx.setLineDash(NO_DASH)
 
     // Galactic glow: a wide, flattened halo and a hot core
     ctx.save()
@@ -253,8 +267,9 @@ export function createScale({ pal, seed = 6 }) {
     drawGlow(ctx, glowIon, cx, cy, ey * 0.2, grow * 0.85)
 
     // Dust: faint grains tracing the arms
-    for (const d of dust) {
-      const r = Math.hypot(d.x, d.y) * z
+    for (let i = 0; i < dust.length; i++) {
+      const d = dust[i]
+      const r = d.r * z
       const x = cx + d.x * z * ex
       const y = cy + d.y * z * ey
       dots.dot(x, y, 1, grow * (0.14 + 0.42 * Math.min(1, r * 1.3)))
@@ -266,13 +281,16 @@ export function createScale({ pal, seed = 6 }) {
     ctx.lineWidth = 1
     ctx.beginPath()
     ctx.globalAlpha = grow * (0.26 + e * 0.12)
-    const growing = []
-    for (const l of links) {
+    let growingLen = 0
+    for (let i = 0; i < links.length; i++) {
+      const l = links[i]
       const k = (time - l.born) / LINK_TIME
       if (k <= 0) continue
       if (l.a.dead >= 0 || l.b.dead >= 0) continue
       if (k < 1) {
-        growing.push(l, k)
+        growing[growingLen] = l
+        growingK[growingLen] = k
+        growingLen++
         continue
       }
       ctx.moveTo(sx(l.a), sy(l.a))
@@ -282,9 +300,9 @@ export function createScale({ pal, seed = 6 }) {
     ctx.strokeStyle = pal.ion.rgb
     ctx.globalAlpha = grow * 0.75
     ctx.beginPath()
-    for (let i = 0; i < growing.length; i += 2) {
+    for (let i = 0; i < growingLen; i++) {
       const l = growing[i]
-      const k = easeOut(growing[i + 1])
+      const k = easeOut(growingK[i])
       const ax = sx(l.a)
       const ay = sy(l.a)
       ctx.moveTo(ax, ay)
@@ -293,7 +311,8 @@ export function createScale({ pal, seed = 6 }) {
     ctx.stroke()
 
     // Nodes
-    for (const n of nodes) {
+    for (let i = 0; i < nodes.length; i++) {
+      const n = nodes[i]
       const x = sx(n)
       const y = sy(n)
       const age = time - n.born
@@ -323,11 +342,11 @@ export function createScale({ pal, seed = 6 }) {
     if (s.pointer) {
       ctx.strokeStyle = pal.atmo.rgb
       ctx.globalAlpha = grow * e * 0.45
-      ctx.setLineDash([2, 4])
+      ctx.setLineDash(SEED_DASH)
       ctx.beginPath()
       ctx.arc(s.mx, s.my, 30, 0, TAU)
       ctx.stroke()
-      ctx.setLineDash([])
+      ctx.setLineDash(NO_DASH)
       label(ctx, 'SEED', s.mx + 36, s.my - 18, { alpha: grow * e * 0.7, size: 8 })
     }
   }

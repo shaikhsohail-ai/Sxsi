@@ -10,7 +10,7 @@
       <div class="s-terminal__head-bar">
         <p class="eyebrow" data-terminal-reveal>07 — Flight computer</p>
         <p class="s-terminal__head-meta hud" data-terminal-reveal>
-          Terminal <span class="hud-value">TTY01</span> <span aria-hidden="true">·</span> Ground link nominal
+          Terminal <span class="hud-value">TTY01</span> <span aria-hidden="true">·</span> Simulated ground link
         </p>
       </div>
       <div class="s-terminal__head-grid">
@@ -82,8 +82,8 @@
                       <dl class="t-kvs">
                         <div class="t-kv" data-boot-line><dt>Power</dt><dd>On</dd></div>
                         <div class="t-kv" data-boot-line><dt>Guidance</dt><dd>Aligned</dd></div>
-                        <div class="t-kv" data-boot-line><dt>Ground link</dt><dd><span class="t-dot" aria-hidden="true"></span>Nominal</dd></div>
-                        <div class="t-kv" data-boot-line><dt>Launch site</dt><dd data-terminal-coords>28.4858° N 80.5444° W</dd></div>
+                        <div class="t-kv" data-boot-line><dt>Ground link</dt><dd><span class="t-dot" aria-hidden="true"></span>Simulated</dd></div>
+                        <div class="t-kv" data-boot-line><dt>Launch site <span class="t-sim">(sim)</span></dt><dd data-terminal-coords>31.4159° N 42.7183° W</dd></div>
                       </dl>
                     </div>
                   </div>
@@ -150,13 +150,13 @@
               <div><dt>Last</dt><dd class="r-last" data-terminal-last>—</dd></div>
             </dl>
             <div class="r-block r-scope">
-              <p class="r-label">Input signal <span class="r-sim">Simulated</span></p>
+              <p class="r-label">Input signal <span class="r-sim s-terminal__sim">Simulated</span></p>
               <div class="r-scope__frame">
                 <canvas class="r-scope__canvas" data-terminal-scope></canvas>
               </div>
             </div>
             <div class="r-block r-next">
-              <p class="r-label">Next window</p>
+              <p class="r-label" data-terminal-next>Next window</p>
               <p class="r-mission">Mission <span data-terminal-mnum>002</span> · <span data-terminal-mname>Ignition</span></p>
               <p class="r-count" data-terminal-countdown>T− ---:--:--:--</p>
               <p class="r-pad">Pad <span data-terminal-pad>LC-01</span> · <span data-terminal-mdate>01 Jan 2027</span></p>

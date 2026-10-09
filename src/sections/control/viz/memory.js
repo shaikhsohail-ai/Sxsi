@@ -9,13 +9,14 @@
  */
 import { seededRandom, pad } from '../../../lib/dom.js'
 import { byTier } from '../../../lib/quality.js'
-import { glowSprite, drawGlow, label, easeOut, sat, TAU } from './core.js'
+import { glowSprite, drawGlow, label, easeOut, sat, TAU, hypot } from './core.js'
 
 const RX = [0.2, 0.355, 0.53, 0.74] // ring semi-major axes (× unit)
 const FLAT = 0.4 // ry / rx
 const OMEGA = [0.62, 0.4, 0.27, 0.19] // rad/s, inner rings faster
 const CAP = [3, 5, 7, 9]
 const CAPTURE_TIME = 0.75
+const RING_LABELS = RX.map((_, i) => `L${i + 1}`)
 
 export function createMemory({ pal, seed = 2 }) {
   const rand = seededRandom(seed * 31337)
@@ -41,6 +42,9 @@ export function createMemory({ pal, seed = 2 }) {
   let time = 0
   let lastCapture = -9
   let seeded = false
+  const pt = [0, 0] // scratch point (ringPoint() out-param)
+  let tailHead = '' // drifter tail gradient stops (built once)
+  let tailEnd = ''
 
   const api = { status: 'Holding', tone: '', resize, step, draw, trigger, settle, readout }
   return api
@@ -66,12 +70,14 @@ export function createMemory({ pal, seed = 2 }) {
     }
   }
 
-  function ringPoint(i, th) {
+  function ringPoint(i, th, out) {
     const rx = unit * RX[i]
     const ry = rx * FLAT
     const lx = Math.cos(th) * rx
     const ly = Math.sin(th) * ry
-    return [cx + lx * cosT - ly * sinT, cy + lx * sinT + ly * cosT]
+    out[0] = cx + lx * cosT - ly * sinT
+    out[1] = cy + lx * sinT + ly * cosT
+    return out
   }
 
   /** Normalised elliptical radius of (x, y) relative to ring i (1 = on the ring). */
@@ -81,7 +87,7 @@ export function createMemory({ pal, seed = 2 }) {
     const lx = dx * cosT + dy * sinT
     const ly = -dx * sinT + dy * cosT
     const rx = unit * RX[i]
-    return Math.hypot(lx / rx, ly / (rx * FLAT))
+    return hypot(lx / rx, ly / (rx * FLAT))
   }
 
   function ringAngle(i, x, y) {
@@ -121,10 +127,12 @@ export function createMemory({ pal, seed = 2 }) {
       // Release the oldest memory on this ring.
       const old = onRing.reduce((a, b) => (a.born < b.born ? a : b))
       held.splice(held.indexOf(old), 1)
-      const [ox, oy] = ringPoint(old.ring, old.th)
+      ringPoint(old.ring, old.th, pt)
+      const ox = pt[0]
+      const oy = pt[1]
       const dx = ox - cx
       const dy = oy - cy
-      const d = Math.hypot(dx, dy) || 1
+      const d = hypot(dx, dy) || 1
       loose.push({ x: ox, y: oy, vx: (dx / d) * 30 - (dy / d) * 20, vy: (dy / d) * 30 + (dx / d) * 20, life: 1 })
     }
     held.push({ ring, th, born: time, cap: instant ? 1 : 0, fx, fy, x: 0, y: 0, front: true })
@@ -145,13 +153,13 @@ export function createMemory({ pal, seed = 2 }) {
       const d = drift[k]
       let ax = cx - d.x
       let ay = cy - d.y
-      const dist = Math.hypot(ax, ay) || 1
+      const dist = hypot(ax, ay) || 1
       ax = (ax / dist) * 7
       ay = (ay / dist) * 7
       if (s.pointer) {
         const px = s.mx - d.x
         const py = s.my - d.y
-        const pd = Math.hypot(px, py) || 1
+        const pd = hypot(px, py) || 1
         if (pd < 170) {
           const f = 70 * (1 - pd / 170)
           ax += (px / pd) * f
@@ -180,7 +188,8 @@ export function createMemory({ pal, seed = 2 }) {
       if (caught || d.x < -40 || d.x > w + 40 || d.y < -40 || d.y > h + 40) drift.splice(k, 1)
     }
 
-    for (const m of held) {
+    for (let i = 0; i < held.length; i++) {
+      const m = held[i]
       m.th += OMEGA[m.ring] * dt * (1 + e * 0.5)
       if (m.cap < 1) m.cap = Math.min(1, m.cap + dt / CAPTURE_TIME)
     }
@@ -219,8 +228,11 @@ export function createMemory({ pal, seed = 2 }) {
     const grow = easeOut(boot * 1.4)
 
     // Positions
-    for (const m of held) {
-      const [ox, oy] = ringPoint(m.ring, m.th)
+    for (let i = 0; i < held.length; i++) {
+      const m = held[i]
+      ringPoint(m.ring, m.th, pt)
+      const ox = pt[0]
+      const oy = pt[1]
       if (m.cap < 1) {
         const k = easeOut(m.cap)
         m.x = m.fx + (ox - m.fx) * k
@@ -244,7 +256,7 @@ export function createMemory({ pal, seed = 2 }) {
       for (let j = i + 1; j < held.length; j++) {
         const b = held[j]
         if (Math.abs(a.ring - b.ring) !== 1) continue
-        const d = Math.hypot(a.x - b.x, a.y - b.y)
+        const d = hypot(a.x - b.x, a.y - b.y)
         if (d > maxD) continue
         ctx.globalAlpha = boot * (1 - d / maxD) * (0.22 + e * 0.15) * Math.min(a.cap, b.cap)
         ctx.beginPath()
@@ -255,7 +267,7 @@ export function createMemory({ pal, seed = 2 }) {
     }
 
     drawTrails(ctx, grow, e)
-    for (const m of held) if (!m.front) drawMemory(ctx, m, boot * 0.5, e)
+    for (let i = 0; i < held.length; i++) if (!held[i].front) drawMemory(ctx, held[i], boot * 0.5, e)
 
     // Core
     drawGlow(ctx, glowAtmo, cx, cy, unit * 0.2, boot * (0.55 + e * 0.25))
@@ -267,18 +279,23 @@ export function createMemory({ pal, seed = 2 }) {
     ctx.fill()
 
     drawRings(ctx, grow, e, true)
-    for (const m of held) if (m.front) drawMemory(ctx, m, boot, e)
+    for (let i = 0; i < held.length; i++) if (held[i].front) drawMemory(ctx, held[i], boot, e)
 
     // Drifters with short tails (faded out where they'd cross the HUD text)
     ctx.lineWidth = 1
-    for (const d of drift) {
-      const sp = Math.hypot(d.vx, d.vy) || 1
+    if (!tailHead) {
+      tailHead = pal.ion.a(0.7)
+      tailEnd = pal.ion.a(0)
+    }
+    for (let i = 0; i < drift.length; i++) {
+      const d = drift[i]
+      const sp = hypot(d.vx, d.vy) || 1
       const tail = 26
       const vis = sat((d.y - hudLine + 10) / 36)
       if (vis <= 0.01) continue
       const grad = ctx.createLinearGradient(d.x, d.y, d.x - (d.vx / sp) * tail, d.y - (d.vy / sp) * tail)
-      grad.addColorStop(0, pal.ion.a(0.7))
-      grad.addColorStop(1, pal.ion.a(0))
+      grad.addColorStop(0, tailHead)
+      grad.addColorStop(1, tailEnd)
       ctx.globalAlpha = boot * vis
       ctx.strokeStyle = grad
       ctx.beginPath()
@@ -291,14 +308,16 @@ export function createMemory({ pal, seed = 2 }) {
 
     // Released memories drifting off
     ctx.fillStyle = pal.atmo.rgb
-    for (const l of loose) {
+    for (let i = 0; i < loose.length; i++) {
+      const l = loose[i]
       ctx.globalAlpha = boot * l.life * 0.6
       ctx.fillRect(l.x - 1, l.y - 1, 2, 2)
     }
 
     // Capture flashes
     ctx.strokeStyle = pal.ion.rgb
-    for (const f of flashes) {
+    for (let i = 0; i < flashes.length; i++) {
+      const f = flashes[i]
       const k = (time - f.t0) / 1
       ctx.globalAlpha = boot * (1 - k) * 0.7
       ctx.beginPath()
@@ -320,8 +339,8 @@ export function createMemory({ pal, seed = 2 }) {
       else ctx.ellipse(cx, cy, rx, ry, tilt, Math.PI, Math.PI * 2)
       ctx.stroke()
       if (front) {
-        const [lx, ly] = ringPoint(i, 0)
-        label(ctx, `L${i + 1}`, lx + 8, ly + 1, { alpha: grow * 0.5, size: 8 })
+        ringPoint(i, 0, pt)
+        label(ctx, RING_LABELS[i], pt[0] + 8, pt[1] + 1, { alpha: grow * 0.5, size: 8 })
       }
     }
   }
@@ -332,17 +351,19 @@ export function createMemory({ pal, seed = 2 }) {
     ctx.lineWidth = 1.4
     ctx.lineCap = 'round'
     ctx.strokeStyle = pal.ion.rgb
-    for (const front of [false, true]) {
+    for (let side = 0; side < 2; side++) {
+      const front = side === 1
       for (let k = 0; k < 3; k++) {
         ctx.globalAlpha = grow * grow * (0.14 + k * 0.2 + e * 0.1) * (front ? 1 : 0.45)
         ctx.beginPath()
-        for (const m of held) {
+        for (let i = 0; i < held.length; i++) {
+          const m = held[i]
           if (m.front !== front || m.cap < 1) continue
           const rx = unit * RX[m.ring]
           const a1 = m.th - (2 - k) * SEG
           const a0 = a1 - SEG
-          const [x0, y0] = ringPoint(m.ring, a0)
-          ctx.moveTo(x0, y0)
+          ringPoint(m.ring, a0, pt)
+          ctx.moveTo(pt[0], pt[1])
           ctx.ellipse(cx, cy, rx, rx * FLAT, tilt, a0, a1)
         }
         ctx.stroke()

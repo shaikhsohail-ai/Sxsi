@@ -6,12 +6,12 @@
  * The WebGL scene (scene.js) is loaded lazily and only *reads* `state`; every
  * tween lives here so intro, scroll and reduced-motion stay in one place.
  */
-import { gsap } from '../../lib/motion.js'
+import { gsap, scrollToTarget } from '../../lib/motion.js'
 import { booted, emit } from '../../lib/bus.js'
 import { hasWebGL, reducedMotion } from '../../lib/quality.js'
 import { observeVisibility } from '../../lib/visibility.js'
 import { $, $$, pad } from '../../lib/dom.js'
-import { NEXT_MISSION } from '../../config.js'
+import { COORDINATES, NEXT_MISSION } from '../../config.js'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const ROLL_FRAMES = [
@@ -19,6 +19,17 @@ const ROLL_FRAMES = [
   { transform: 'none', opacity: 1 },
 ]
 const ROLL_TIMING = { duration: 340, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }
+const LIT = { light: 1, reveal: 1, flare: 1, net: 1, push: 0 }
+
+// Fetch three.js and the scene as soon as this chunk is evaluated, not when
+// init() runs after boot and nav (seconds later on a slow device). The static
+// rendition holds the frame meanwhile. Only a cheap API check here: creating a
+// probe context can block the main thread for a long while on software GL, and
+// would hold up this request and the boot overlay; startScene() runs the real
+// hasWebGL() probe before anything is drawn.
+const forceStatic = new URLSearchParams(location.search).get('hero') === 'static'
+const sceneModule = !forceStatic && typeof WebGLRenderingContext === 'function' ? import('./scene.js') : null
+sceneModule?.catch(() => {}) // handled in startScene(); not an unhandled rejection meanwhile
 
 export function init() {
   const root = document.getElementById('hero')
@@ -33,7 +44,7 @@ export function init() {
 
   if (reducedMotion) {
     // A still, fully-lit frame: sun just touching the limb, network awake.
-    Object.assign(state, { progress: 0.2, light: 1, reveal: 1, flare: 1, net: 1, push: 0 })
+    Object.assign(state, LIT, { progress: 0.2 })
   } else {
     hideForIntro(root)
     initScroll(root, state)
@@ -48,17 +59,26 @@ export function init() {
  * ------------------------------------------------------------------------ */
 function startScene(root, state) {
   const canvas = $('[data-hero-canvas]', root)
-  const forceStatic = new URLSearchParams(location.search).get('hero') === 'static'
   const fallback = () => {
     root.classList.remove('is-webgl')
     root.classList.add('is-fallback')
   }
-  if (!canvas || forceStatic || !hasWebGL()) return fallback()
+  if (!canvas || !sceneModule || !hasWebGL()) return fallback()
 
   const reticle = trackSun(root)
-  import('./scene.js')
+  const onReady = () => {
+    // The visitor is already looking at the lit static rendition: match it, so
+    // the canvas cross-fades lit over lit instead of dipping back to darkness.
+    // (Still behind the boot overlay, the intro's fade-up plays as designed.)
+    if (!reducedMotion && document.documentElement.dataset.booted === 'true') {
+      gsap.killTweensOf(state, Object.keys(LIT).join(','))
+      Object.assign(state, LIT)
+    }
+    root.classList.add('is-webgl')
+  }
+  sceneModule
     .then(({ createHeroScene }) => {
-      createHeroScene({ root, canvas, state, onFrame: reticle, onReady: () => root.classList.add('is-webgl') })
+      createHeroScene({ root, canvas, state, onFrame: reticle, onReady })
       root.addEventListener('hero:webgl-lost', fallback, { once: true })
     })
     .catch((error) => {
@@ -137,7 +157,7 @@ function initScroll(root, state) {
   const vh = () => window.innerHeight
   let crested = false
 
-  gsap
+  const timeline = gsap
     .timeline({
       defaults: { ease: 'none' },
       scrollTrigger: {
@@ -170,10 +190,42 @@ function initScroll(root, state) {
     // Hand over to the next section: the foreground sinks into black so the
     // frame leaves with a seamless edge
     .to($('[data-hero-exit]', root), { opacity: 1, duration: 0.3, ease: 'power1.inOut' }, 0.7)
+
+  guardFocus(root, lift, timeline.scrollTrigger)
+}
+
+/**
+ * Keyboard focus must never land on copy the visitor can't see. The sticky
+ * frame keeps the CTAs geometrically in view while the scrub has faded them,
+ * so the browser won't scroll for them (Shift+Tab back from the mission, Tab
+ * from the nav mid-scroll): rewind the scrub before the focus ring paints. A
+ * CTA reached during the intro is revealed at once. Mouse and touch focus
+ * (not :focus-visible) are left alone, so clicks navigate as usual.
+ */
+function guardFocus(root, lift, trigger) {
+  if (!lift) return
+  const copy = $$('[data-hero-line], [data-hero-reveal]', root)
+  const isKeyboard = (el) => {
+    try {
+      return el.matches(':focus-visible')
+    } catch {
+      return false
+    }
+  }
+  lift.addEventListener('focusin', ({ target }) => {
+    if (!isKeyboard(target)) return
+    if (trigger && trigger.progress > 0.05) scrollToTarget(trigger.start, { immediate: true })
+    if (copy.some((el) => gsap.getProperty(el, 'opacity') < 1 || gsap.getProperty(el, 'yPercent') !== 0)) {
+      gsap.killTweensOf(copy)
+      gsap.set(copy, { opacity: 1, y: 0, yPercent: 0 })
+    }
+  })
 }
 
 /* --------------------------------------------------------------------------
- * Next-launch countdown: T− DD:HH:MM:SS → T+ after launch
+ * Next window: T− DD:HH:MM:SS to the roadmap target. A target is not a launch,
+ * so once it passes the clock stops and the card says the window is open; it
+ * never claims a launch happened.
  * ------------------------------------------------------------------------ */
 function initCountdown(root) {
   const { number, name, launchAt, pad: launchPad } = NEXT_MISSION
@@ -206,7 +258,6 @@ function initCountdown(root) {
     h: $('[data-hero-h]', root),
     m: $('[data-hero-m]', root),
     s: $('[data-hero-s]', root),
-    sign: $('[data-hero-sign]', root),
     status: $('[data-hero-launch-status]', root),
   }
   const write = (el, text) => {
@@ -224,29 +275,29 @@ function initCountdown(root) {
   }
 
   let timer = 0
-  let launched = null
+  let open = null
   const tick = () => {
     const now = Date.now()
-    const diff = target - now
-    const abs = Math.abs(diff)
-    const days = Math.floor(abs / 86_400_000)
+    const left = Math.max(0, target - now)
+    const days = Math.floor(left / 86_400_000)
     roll(els.d, days > 99 ? String(days) : pad(days))
-    roll(els.h, pad((abs / 3_600_000) % 24))
-    roll(els.m, pad((abs / 60_000) % 60))
-    roll(els.s, pad((abs / 1000) % 60))
+    roll(els.h, pad((left / 3_600_000) % 24))
+    roll(els.m, pad((left / 60_000) % 60))
+    roll(els.s, pad((left / 1000) % 60))
 
-    const isLaunched = diff <= 0
-    if (isLaunched !== launched) {
-      launched = isLaunched
-      write(els.sign, isLaunched ? 'T+' : 'T−')
-      write(els.status, isLaunched ? 'Launched' : 'Next launch')
-      // ignition orange while counting down, nominal green once flying
-      els.status?.classList.toggle('status--live', !isLaunched)
-      root.classList.toggle('is-launched', isLaunched)
+    const isOpen = left === 0
+    if (isOpen !== open) {
+      open = isOpen
+      write(els.status, isOpen ? 'Window open · awaiting update' : 'Next window')
+      // A frozen T− 00:00:00:00 would read as a live event: retire the clock
+      clock.hidden = isOpen
     }
-    timer = window.setTimeout(tick, 1000 - (now % 1000) + 10)
+    // Nothing left to count once the window is open
+    timer = isOpen ? 0 : window.setTimeout(tick, 1000 - (now % 1000) + 10)
   }
 
+  // Real digits from the first frame (the markup's 00s would read as an open window)
+  tick()
   observeVisibility(root, (visible) => {
     if (visible && !timer) tick()
     else if (!visible && timer) {
@@ -274,16 +325,16 @@ function initTelemetry(root) {
 
   const update = () => {
     const t = (performance.now() - start) / 1000
-    // Brand fiction: a 51.6° orbit drifting east from the launch site
-    const lat = 28.4858 + Math.sin(t * 0.0011) * 2.2
-    let lon = -80.5444 + t * 0.0682
+    // Brand fiction: a 51.6° orbit drifting east from the (fictional) launch site
+    const lat = COORDINATES.lat + Math.sin(t * 0.0011) * 2.2
+    let lon = COORDINATES.lon + t * 0.0682
     lon = ((((lon + 180) % 360) + 360) % 360) - 180
     write(els.lat, `${Math.abs(lat).toFixed(4)}° ${lat >= 0 ? 'N' : 'S'}`)
     write(els.lon, `${Math.abs(lon).toFixed(4)}° ${lon >= 0 ? 'E' : 'W'}`)
     write(els.alt, (408 + Math.sin(t * 0.21) * 0.35 + Math.sin(t * 0.047) * 0.6).toFixed(1))
     write(els.vel, (7.66 + Math.sin(t * 0.13) * 0.004).toFixed(3))
     const s = Math.floor(t)
-    write(els.met, `T+ ${pad(s / 3600)}:${pad((s / 60) % 60)}:${pad(s % 60)}`)
+    write(els.met, `${pad(s / 3600)}:${pad((s / 60) % 60)}:${pad(s % 60)}`)
   }
 
   let timer = 0

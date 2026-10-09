@@ -34,6 +34,7 @@ Each section is self‑contained: an HTML partial (inlined into `index.html` at 
 ## Editing content
 
 - **Dates, mission name, contact, socials, waitlist:** `src/config.js`
+- **Launch‑site coordinates** (brand fiction, open ocean on purpose): `COORDINATES` in `src/config.js`. The nav, hero, control, terminal, footer and join partials repeat the label as their no‑JS fallback, so change them together.
 - **Copy:** the `.html` partial in each section folder
 - **Design tokens (colors, type, spacing, easing):** `src/styles/tokens.css`
 - **Shared components (buttons, labels, panels):** `src/styles/components.css`
@@ -66,6 +67,7 @@ The build is a static folder (`dist/`), so it runs on any static host.
 
 - Respects `prefers-reduced-motion`. You get a still, fully readable page with no pinned or scrubbed motion.
 - Every section's text is in the static HTML. JavaScript only enhances it.
+- Deep links (`/#manifest`), reloads and window resizes / rotations keep the visitor on the section they asked for or were reading. Pinned sections add thousands of px once they initialise, so `src/lib/motion.js` tracks a reading position (section + how far through it) rather than a scroll pixel.
 - Render loops pause when off screen. Pixel ratio and particle counts scale with device capability (`src/lib/quality.js`).
 
 ---

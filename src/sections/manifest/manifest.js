@@ -59,6 +59,10 @@ export function init() {
     return
   }
 
+  // Focus reveals a mission that hasn't assembled yet (both layouts), and it
+  // stays assembled — focus must never sit on an invisible patch.
+  root.addEventListener('focusin', (event) => event.target.closest?.('[data-mission]')?.classList.add('is-in'))
+
   // Intro reveal (both layouts)
   ScrollTrigger.create({
     trigger: root,
@@ -141,10 +145,10 @@ function mountPatch(mission, announce) {
   const slot = $('[data-mission-patch]', mission.el)
   if (!slot) return
   const markup = createPatchMarkup(mission)
-  const label = `Mission ${mission.number} ${mission.name} patch`
 
   // The artwork is decorative (its lettering repeats the card); the button on
-  // top of it carries the name, so its accessible name matches what it does.
+  // top of it carries the name. The name starts with the visible hint's words
+  // ("Collect patch") so voice control can target it (WCAG 2.5.3 Label in Name).
   slot.innerHTML = `
     <span class="s-manifest__patch-tilt" aria-hidden="true">
       ${markup}
@@ -160,7 +164,7 @@ function mountPatch(mission, announce) {
   if (mission.status === 'active') slot.insertAdjacentHTML('afterbegin', '<span class="s-manifest__patch-halo" aria-hidden="true"></span>')
 
   const button = $('.s-manifest__patch', slot)
-  button.setAttribute('aria-label', `Download the ${label}`)
+  button.setAttribute('aria-label', `Collect patch: Mission ${mission.number} ${mission.name} (downloads an image)`)
   const tilt = $('.s-manifest__patch-tilt', slot)
   initTilt(slot, button, tilt)
 
@@ -273,19 +277,26 @@ function initCountdowns(root, missions) {
         out.hidden = false
         out.setAttribute('aria-hidden', 'true')
       }
-      return { at, out }
+      return { at, out, open: null }
     })
     .filter((c) => c.out)
   if (!clocks.length) return
 
+  // Once the target passes the clock holds at T−0 and the window reads open —
+  // never T+ (nothing is claimed to have launched; same rule as the hero).
   const tick = () => {
     const now = Date.now()
-    for (const { at, out } of clocks) {
-      const diff = at - now
-      const s = Math.floor(Math.abs(diff) / 1000)
-      const days = Math.floor(s / 86400)
-      const text = `T${diff >= 0 ? '−' : '+'} ${pad(days, 3)}D ${pad((s / 3600) % 24)}:${pad((s / 60) % 60)}:${pad(s % 60)}`
+    for (const clock of clocks) {
+      const { at, out } = clock
+      const s = Math.floor(Math.max(0, at - now) / 1000)
+      const text = `T− ${pad(Math.floor(s / 86400), 3)}D ${pad((s / 3600) % 24)}:${pad((s / 60) % 60)}:${pad(s % 60)}`
       if (out.textContent !== text) out.textContent = text
+      if (at <= now && !clock.open) {
+        clock.open = document.createElement('span')
+        clock.open.className = 'status status--live s-manifest__window-open'
+        clock.open.textContent = 'Window open'
+        out.after(clock.open)
+      }
     }
   }
   tick()

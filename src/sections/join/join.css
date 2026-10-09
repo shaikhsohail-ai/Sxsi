@@ -9,7 +9,11 @@
    ========================================================================== */
 .s-join {
   --s-join-label: rgba(244, 246, 251, 0.6); /* small HUD labels: ≥ 6:1 on black */
+  /* Smallest type printed on the pass (labels, fine print): 11px, ≥ 0.7 alpha */
+  --s-join-micro: 0.6875rem;
+  --s-join-pass-label: rgba(244, 246, 251, 0.7);
   --s-join-sky-h: 100vh;
+  --s-join-fade: clamp(120px, 18vh, 160px); /* sky → void at the footer seam */
   position: relative;
   isolation: isolate;
   overflow: clip;
@@ -37,6 +41,31 @@
 .s-join--static .s-join__sky {
   top: auto;
   height: var(--s-join-sky-h);
+}
+
+/* Hand-off to the footer: the sunrise, its haze and the city lights sink into
+   the void over the section's last stretch (an eased ramp, so there's no line
+   where the fade starts or ends) instead of stopping at an edge. */
+.s-join__sky::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--s-join-fade);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.05) 15%,
+    rgba(0, 0, 0, 0.18) 29%,
+    rgba(0, 0, 0, 0.35) 41%,
+    rgba(0, 0, 0, 0.55) 53%,
+    rgba(0, 0, 0, 0.74) 65%,
+    rgba(0, 0, 0, 0.88) 77%,
+    rgba(0, 0, 0, 0.96) 88%,
+    var(--c-void) 100%
+  );
+  pointer-events: none;
 }
 
 .s-join__canvas {
@@ -293,8 +322,12 @@
   letter-spacing: 0;
 }
 
+/* Reads as an example, not an entry: lighter and airier than typed text,
+   but still ≥ 4.5:1 on the night sky. */
 .s-join__input::placeholder {
-  color: rgba(244, 246, 251, 0.3);
+  color: rgba(244, 246, 251, 0.58);
+  font-weight: 400;
+  letter-spacing: 0.08em;
   opacity: 1;
 }
 
@@ -523,12 +556,26 @@
   color: var(--c-text-dim);
 }
 
-html.no-js .s-join__nojs {
+/* Without JavaScript there's nothing to print with: no dead form. The lead,
+   the mailto contact, the note and the no-JS line stay. */
+html:not(.js) .s-join__nojs {
   display: block;
 }
 
-html.no-js .s-join__hint {
+html:not(.js) .s-join__hint {
   visibility: hidden;
+}
+
+html:not(.js) .s-join .s-join__form-head,
+html:not(.js) .s-join .s-join__field,
+html:not(.js) .s-join .s-join__submit {
+  display: none;
+}
+
+html:not(.js) .s-join .s-join__submit-row {
+  margin-top: 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--c-line-strong);
 }
 
 /* ---- Pass column ------------------------------------------------------------ */
@@ -578,6 +625,8 @@ html.no-js .s-join__hint {
 /* ---- The pass ----------------------------------------------------------------
    Every dimension is in container units (var(--u) = 1% of the stage width),
    so the card scales like a vector image. Narrow stages get a portrait layout.
+   The card is 2.14:1 at rest, but its legibility floors (11px labels and fine
+   print) win on narrower cards: there it grows a little taller, never clips.
    --------------------------------------------------------------------------- */
 .s-join__pass {
   --u: 1cqw;
@@ -587,8 +636,8 @@ html.no-js .s-join__hint {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--stub);
-  aspect-ratio: 2.14;
   width: 100%;
+  min-height: calc(var(--u) * 100 / 2.14);
   overflow: hidden;
   border-radius: calc(var(--u) * 1.3);
   color: var(--c-text);
@@ -665,12 +714,12 @@ html.no-js .s-join__hint {
 .s-join__label {
   display: block;
   font-family: var(--font-mono);
-  font-size: max(9px, calc(var(--u) * 1.18));
+  font-size: max(var(--s-join-micro), calc(var(--u) * 1.18));
   font-weight: 500;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.16em;
   line-height: 1.3;
   text-transform: uppercase;
-  color: var(--s-join-label);
+  color: var(--s-join-pass-label);
 }
 
 .s-join__top {
@@ -704,8 +753,8 @@ html.no-js .s-join__hint {
   padding-left: calc(var(--u) * 1.8);
   border-left: 1px solid rgba(255, 255, 255, 0.16);
   font-family: var(--font-mono);
-  font-size: max(9px, calc(var(--u) * 1.18));
-  letter-spacing: 0.22em;
+  font-size: max(var(--s-join-micro), calc(var(--u) * 1.18));
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--c-text-dim);
   white-space: nowrap;
@@ -759,9 +808,10 @@ html.no-js .s-join__hint {
 
 .s-join__port-detail {
   font-family: var(--font-mono);
-  font-size: max(9px, calc(var(--u) * 1.12));
-  letter-spacing: 0.14em;
-  color: var(--c-text-dim);
+  font-size: max(var(--s-join-micro), calc(var(--u) * 1.12));
+  letter-spacing: 0.1em;
+  line-height: 1.3;
+  color: rgba(244, 246, 251, 0.8);
   white-space: nowrap;
 }
 
@@ -837,12 +887,11 @@ html.no-js .s-join__hint {
   min-height: calc(var(--u) * 4.4);
 }
 
-.s-join__pass.is-draft .s-join__name {
-  color: rgba(244, 246, 251, 0.34);
-}
-
-.s-join__pass.is-draft.has-name .s-join__name {
-  color: var(--c-text);
+/* Unprinted name: a lighter, wider-tracked proof that still reads (≥ 4.5:1) */
+.s-join__pass.is-draft:not(.has-name) .s-join__name {
+  color: rgba(244, 246, 251, 0.62);
+  font-weight: 450;
+  letter-spacing: 0.07em;
 }
 
 /* Blinking print head while the visitor types */
@@ -890,22 +939,30 @@ html.no-js .s-join__hint {
   color: var(--c-text-dim);
 }
 
+/* Fine print: the "not valid for travel" disclosure must stay legible. One
+   line when there's room; on narrower cards the note drops below the crew ID. */
 .s-join__fine {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: calc(var(--u) * 2);
+  gap: 0.3em calc(var(--u) * 2);
   padding-top: calc(var(--u) * 1.4);
   font-family: var(--font-mono);
-  font-size: max(8.5px, calc(var(--u) * 1.06));
-  letter-spacing: 0.16em;
+  font-size: max(var(--s-join-micro), calc(var(--u) * 1.06));
+  letter-spacing: 0.12em;
+  line-height: 1.3;
   text-transform: uppercase;
-  color: var(--s-join-label);
+  color: var(--s-join-pass-label);
   white-space: nowrap;
 }
 
 .s-join__crew-id {
   margin-left: 0.6em;
   color: var(--c-text);
+}
+
+.s-join__nb {
+  white-space: nowrap;
 }
 
 /* Stub */
@@ -930,12 +987,12 @@ html.no-js .s-join__hint {
 }
 
 .s-join__chip {
-  padding: 0.25em 0.7em;
+  padding: 0.2em 0.6em;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: var(--radius);
   font-family: var(--font-mono);
-  font-size: max(8px, calc(var(--u) * 0.98));
-  letter-spacing: 0.2em;
+  font-size: max(var(--s-join-micro), calc(var(--u) * 0.98));
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--c-text-dim);
 }
@@ -966,7 +1023,7 @@ html.no-js .s-join__hint {
   font-family: var(--font-display);
   font-stretch: 112%;
   font-weight: 650;
-  font-size: max(10px, calc(var(--u) * 1.4));
+  font-size: max(0.75rem, calc(var(--u) * 1.4));
   letter-spacing: 0.06em;
 }
 
@@ -989,8 +1046,8 @@ html.no-js .s-join__hint {
 .s-join__stub-id {
   margin-top: calc(var(--u) * 1.1);
   font-family: var(--font-mono);
-  font-size: max(8.5px, calc(var(--u) * 1.02));
-  letter-spacing: 0.14em;
+  font-size: max(var(--s-join-micro), calc(var(--u) * 1.02));
+  letter-spacing: 0.1em;
   color: var(--c-text-dim);
   white-space: nowrap;
 }
@@ -1055,8 +1112,9 @@ html.no-js .s-join__hint {
 /* Stamp */
 .s-join__stamp {
   position: absolute;
-  /* stamped on the stub, between the seat details and the code */
-  top: calc(var(--u) * 20.4);
+  /* stamped on the stub, between the seat details and the code (the rem part
+     follows the stub's 11–12px label and value rows) */
+  top: calc(var(--u) * 12 + 5rem);
   right: calc(var(--stub) / 2);
   translate: 50% 0;
   display: flex;
@@ -1098,11 +1156,12 @@ html.no-js .s-join__hint {
 /* ---- Portrait pass for narrow stages ------------------------------------- */
 @container s-join-pass (max-width: 520px) {
   .s-join__pass {
-    --stub: calc(var(--u) * 34);
+    /* tall enough for the stub's head, seat and crew ID rows at their 11px floor */
+    --stub: calc(var(--u) * 24 + 3.25rem);
     --notch: calc(var(--u) * 3.4);
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) var(--stub);
-    aspect-ratio: auto;
+    min-height: 0;
     border-radius: calc(var(--u) * 3);
     -webkit-mask-image:
       radial-gradient(circle var(--notch) at 0 calc(100% - var(--stub)), #0000 calc(100% - 0.5px), #000 100%),
@@ -1138,7 +1197,7 @@ html.no-js .s-join__hint {
   .s-join__label,
   .s-join__kind,
   .s-join__port-detail {
-    font-size: calc(var(--u) * 2.6);
+    font-size: max(var(--s-join-micro), calc(var(--u) * 2.6));
   }
 
   .s-join__top {
@@ -1160,7 +1219,7 @@ html.no-js .s-join__hint {
   }
 
   .s-join__mission-val {
-    font-size: calc(var(--u) * 3.4);
+    font-size: max(0.75rem, calc(var(--u) * 3.4));
   }
 
   .s-join__route {
@@ -1198,7 +1257,7 @@ html.no-js .s-join__hint {
   }
 
   .s-join__fields dd {
-    font-size: calc(var(--u) * 3.7);
+    font-size: max(0.75rem, calc(var(--u) * 3.7));
     margin-top: calc(var(--u) * 1);
   }
 
@@ -1208,7 +1267,8 @@ html.no-js .s-join__hint {
     /* leave the right-hand side for the stamp */
     padding-top: calc(var(--u) * 3.4);
     padding-right: calc(var(--u) * 36);
-    font-size: calc(var(--u) * 2.4);
+    font-size: max(var(--s-join-micro), calc(var(--u) * 2.4));
+    letter-spacing: 0.1em;
     white-space: normal;
   }
 
@@ -1216,16 +1276,12 @@ html.no-js .s-join__hint {
     white-space: nowrap;
   }
 
-  .s-join__crew-id {
-    margin-left: 0.6em;
-  }
-
   .s-join__stub {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-rows: auto minmax(0, 1fr) auto;
     column-gap: calc(var(--u) * 6);
-    padding: calc(var(--u) * 5.4) calc(var(--u) * 6);
+    padding: calc(var(--u) * 4.6) calc(var(--u) * 6);
     background:
       linear-gradient(90deg, rgba(255, 255, 255, 0.34) 50%, transparent 0) left top / calc(var(--u) * 2.2) 1px repeat-x,
       linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01));
@@ -1245,13 +1301,13 @@ html.no-js .s-join__hint {
   }
 
   .s-join__chip {
-    font-size: calc(var(--u) * 2.3);
+    font-size: max(var(--s-join-micro), calc(var(--u) * 2.3));
   }
 
   .s-join__stub-seat {
     grid-column: 2;
     align-self: center;
-    padding-top: calc(var(--u) * 2);
+    padding-top: calc(var(--u) * 1.4);
   }
 
   .s-join__stub-big {
@@ -1262,9 +1318,9 @@ html.no-js .s-join__hint {
     grid-column: 3;
     grid-row: 2;
     align-self: center;
-    padding-top: calc(var(--u) * 2);
+    padding-top: calc(var(--u) * 1.4);
     gap: calc(var(--u) * 4);
-    font-size: calc(var(--u) * 3.3);
+    font-size: max(0.75rem, calc(var(--u) * 3.3));
   }
 
   .s-join__stub-row .s-join__label {
@@ -1274,7 +1330,7 @@ html.no-js .s-join__hint {
   .s-join__stub-id {
     grid-column: 2 / -1;
     margin-top: calc(var(--u) * 1.2);
-    font-size: calc(var(--u) * 2.4);
+    font-size: max(var(--s-join-micro), calc(var(--u) * 2.4));
   }
 
   .s-join__stamp {
@@ -1368,6 +1424,10 @@ html.no-js .s-join__hint {
   display: none;
 }
 
+.s-join__copy-fallback .s-join__label {
+  font-size: var(--fs-micro);
+}
+
 .s-join__copy-input {
   width: 100%;
   margin-top: 6px;
@@ -1377,6 +1437,13 @@ html.no-js .s-join__hint {
   background: rgba(0, 0, 0, 0.6);
   font-family: var(--font-mono);
   font-size: var(--fs-small);
+}
+
+/* 16px on touch screens, so iOS doesn't zoom the page when it takes focus */
+@media (pointer: coarse) {
+  .s-join__copy-input {
+    font-size: 1rem;
+  }
 }
 
 /* ---- Finale ------------------------------------------------------------------ */
@@ -1512,9 +1579,16 @@ html.no-js .s-join__hint {
   --btn-bg: rgba(0, 0, 0, 0.35);
 }
 
-.s-join__finale-cta:hover .btn__arrow,
-.s-join__finale-cta:focus-visible .btn__arrow {
-  transform: translateY(-3px);
+/* A ticket, not an arrow: "Return to orbit ↑" sits just below in the footer.
+   (Scoped under .s-join so it outranks the shared .btn rules emitted later.) */
+.s-join .s-join__finale-cta .btn__arrow {
+  width: 1.35em;
+  height: 1.35em;
+}
+
+.s-join .s-join__finale-cta:hover .btn__arrow,
+.s-join .s-join__finale-cta:focus-visible .btn__arrow {
+  transform: translateY(-1px) rotate(-12deg);
 }
 
 /* ---- Responsive ---------------------------------------------------------------- */

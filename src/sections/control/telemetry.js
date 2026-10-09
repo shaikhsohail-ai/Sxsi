@@ -4,7 +4,8 @@
  *
  * The ticker is a seamless marquee (the list is cloned once, aria-hidden) that
  * slows under the pointer and pauses offscreen or on HOLD. Under reduced
- * motion it's a still strip that can be scrolled sideways.
+ * motion (or without JS) it's never built: CSS lays the readings out as a
+ * still board.
  */
 import { gsap } from '../../lib/motion.js'
 import { reducedMotion } from '../../lib/quality.js'
@@ -97,6 +98,9 @@ export function initTelemetry(root, { getNodes }) {
   let marquee = null
 
   if (track && !reducedMotion) {
+    // A running marquee keeps its strip even if reduced motion is switched on
+    // later (the CSS still board would otherwise lay out its moving copies).
+    root.classList.add('is-marquee')
     // Clone once for a seamless loop; the copy is decorative.
     const items = Array.from(track.children)
     for (const item of items) {

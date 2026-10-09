@@ -10,7 +10,7 @@
    ========================================================================== */
 
 .s-mission {
-  --s-mission-runway: 115vh;
+  --s-mission-runway: 90vh; /* scroll that lights the statement while the frame holds */
   --s-mission-dim: 0.17; /* opacity of an unlit word */
   --s-mission-label: rgba(244, 246, 251, 0.6); /* small HUD labels: ≥ 6:1 on black */
   --s-mission-col-pad: clamp(20px, 2.6vw, 44px);
@@ -611,7 +611,7 @@ html:not(.js) .s-mission__frame {
 
 @media (max-width: 900px) {
   .s-mission {
-    --s-mission-runway: 100vh;
+    --s-mission-runway: 80vh;
   }
 
   .s-mission__principles {
@@ -660,10 +660,6 @@ html:not(.js) .s-mission__frame {
 }
 
 @media (max-width: 560px) {
-  .s-mission {
-    --s-mission-runway: 90vh;
-  }
-
   /* Poster: the orbital chart above, the statement anchored low */
   .s-mission__statement {
     align-self: end;

@@ -17,7 +17,8 @@ const MONO = '"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospa
 const C = {
   text: '#f4f6fb',
   dim: 'rgba(244, 246, 251, 0.68)',
-  label: 'rgba(244, 246, 251, 0.56)',
+  label: 'rgba(244, 246, 251, 0.62)',
+  fine: 'rgba(244, 246, 251, 0.74)',
   line: 'rgba(255, 255, 255, 0.13)',
   atmo: '#6fc3ff',
   ion: '#c7ecff',
@@ -171,8 +172,8 @@ function drawSky(ctx, seed) {
 
   // Signature on the night side
   text(ctx, 'FOR THE SKY.', cx, 606, { size: 15, weight: 700, stretch: 'expanded', spacing: 5, color: 'rgba(244, 246, 251, 0.9)', align: 'center' })
-  label(ctx, 'sxsi.ai', 40, 606, { color: C.label })
-  label(ctx, 'Commemorative', W - 40, 606, { align: 'right' })
+  label(ctx, 'sxsi.ai', 40, 606, { size: 13, color: C.label })
+  label(ctx, 'Commemorative', W - 40, 606, { size: 13, color: C.fine, align: 'right' })
 }
 
 /** The SXSI wordmark (shared with the nav), `h` px tall with its top-left at x, y. Returns its width. */
@@ -292,10 +293,17 @@ function drawInk(ctx, pass, box) {
     fx += widths[i]
   })
 
-  // Fine print
-  label(ctx, 'Crew ID', left, y + 404, { size: 10 })
-  label(ctx, pass.crewId, left + 76, y + 404, { size: 10, color: C.text })
-  label(ctx, 'Commemorative · Not valid for travel', right, y + 404, { size: 10, align: 'right' })
+  // Fine print. The "not valid for travel" disclosure is part of what the pass
+  // says, so it prints at a size that reads at 100%.
+  const fine = { size: 14, spacing: 1.8 }
+  const idLabelW = label(ctx, 'Crew ID', left, y + 406, { ...fine, color: C.fine })
+  const idW = label(ctx, pass.crewId, left + idLabelW + 12, y + 406, { ...fine, color: C.text })
+  label(ctx, 'Commemorative · Not valid for travel', right, y + 406, {
+    ...fine,
+    color: C.fine,
+    align: 'right',
+    maxWidth: right - (left + idLabelW + 12 + idW + 32),
+  })
 
   // Stub
   const sl = stubX + 34
@@ -304,7 +312,7 @@ function drawInk(ctx, pass, box) {
   ctx.strokeStyle = 'rgba(111, 195, 255, 0.75)'
   ctx.lineWidth = 1
   ctx.strokeRect(sr - 74, y + 40, 74, 22)
-  label(ctx, 'Issued', sr - 37, y + 55, { size: 9.5, align: 'center', color: C.atmo })
+  label(ctx, 'Issued', sr - 37, y + 56, { size: 11, spacing: 2, align: 'center', color: C.atmo })
   ctx.fillStyle = C.line
   ctx.fillRect(sl, y + 80, sr - sl, 1)
   label(ctx, 'Seat', sl, y + 116)
@@ -322,7 +330,7 @@ function drawInk(ctx, pass, box) {
   ctx.fillStyle = C.text
   ctx.fill(new Path2D(matrixCodePath(pass.seed)))
   ctx.restore()
-  label(ctx, pass.crewId, sl, y + 404, { size: 10, color: C.dim, spacing: 1.8 })
+  label(ctx, pass.crewId, sl, y + 406, { size: 13, color: C.dim, spacing: 1.4 })
 }
 
 /** Returns a 1200×630 canvas with the pass drawn on it. */

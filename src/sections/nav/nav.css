@@ -437,8 +437,11 @@ html:not(.js) .s-nav__clock {
   display: none;
 }
 
-/* Keep native scrolling still behind the menu (reduced motion / no Lenis). */
-html:has(.s-nav-menu:not([hidden])) {
+/* Keep native scrolling still behind the menu for as long as it is on screen,
+   closing wipe included (lockScroll() only covers it while open). A class set
+   by nav.js on purpose: a root-level "has" selector would re-style the whole
+   document every time any text on the page changes. */
+html.has-nav-menu {
   overflow: hidden;
 }
 
@@ -695,6 +698,31 @@ html:has(.s-nav-menu:not([hidden])) {
   color: var(--s-nav-label);
 }
 
+/* Pad coordinates are brand fiction: tagged like every simulated readout */
+.s-nav-menu__tm--pad {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 0.9em;
+}
+
+.s-nav-menu__tm--pad .s-nav-menu__tm-key {
+  margin-right: -0.3em; /* key → value keeps the 0.6em of the other readouts */
+}
+
+/* Site-wide disclosure tag (identical in every section). */
+.s-nav-menu .s-nav-menu__sim {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  line-height: 1;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--c-text-dim);
+  border: 1px solid var(--c-line-strong);
+  padding: 3px 6px 2px;
+  border-radius: var(--radius);
+}
+
 .s-nav-menu__mail {
   margin-left: auto;
   color: var(--c-text);
@@ -708,6 +736,19 @@ html:has(.s-nav-menu:not([hidden])) {
 .s-nav-menu__mail:focus-visible {
   color: var(--c-atmo);
   background-size: 100% 1px;
+}
+
+/* Touch: a taller hit area around the address, same type and layout */
+@media (pointer: coarse) {
+  .s-nav-menu .s-nav-menu__mail {
+    position: relative;
+  }
+
+  .s-nav-menu .s-nav-menu__mail::before {
+    content: '';
+    position: absolute;
+    inset: -12px -8px;
+  }
 }
 
 /* ==========================================================================
@@ -827,20 +868,26 @@ html:has(.s-nav-menu:not([hidden])) {
     margin-left: 0;
   }
 
-  /* Rows: UTC · status / coordinates · contact */
+  /* Rows: UTC · status / coordinates (tag below when narrow) · contact */
   .s-nav-menu__tm--status {
     order: 1;
   }
 
-  .s-nav-menu__tm:nth-of-type(2) {
+  .s-nav-menu__tm--pad {
     order: 2;
+    white-space: normal;
+  }
+
+  .s-nav-menu__tm--pad .hud-value {
+    white-space: nowrap;
   }
 
   .s-nav-menu__mail {
     order: 3;
+    align-self: start;
   }
 
-  .s-nav-menu__tm:nth-of-type(2) .s-nav-menu__tm-key {
+  .s-nav-menu__tm--pad .s-nav-menu__tm-key {
     display: none;
   }
 
@@ -856,6 +903,21 @@ html:has(.s-nav-menu:not([hidden])) {
   html:not(.js) .s-nav__link {
     font-size: 0.62rem;
     letter-spacing: 0.12em;
+  }
+}
+
+/* No-JS on the narrowest phones: the tools are inert, give the links the room */
+@media (max-width: 400px) {
+  html:not(.js) .s-nav__tools {
+    display: none;
+  }
+
+  html:not(.js) .s-nav__links {
+    gap: 10px;
+  }
+
+  html:not(.js) .s-nav__link {
+    letter-spacing: 0.06em;
   }
 }
 

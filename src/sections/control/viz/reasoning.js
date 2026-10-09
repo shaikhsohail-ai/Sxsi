@@ -17,7 +17,7 @@
  */
 import { seededRandom, pad } from '../../../lib/dom.js'
 import { byTier } from '../../../lib/quality.js'
-import { glowSprite, drawGlow, label, easeOut, easeInOut, approach, sat, rectBatch } from './core.js'
+import { glowSprite, drawGlow, label, easeOut, easeInOut, approach, sat, rectBatch, NO_DASH, hypot } from './core.js'
 
 const GROW_STEP = 0.32 // seconds between depth levels
 const GROW_DUR = 0.66 // seconds for one edge to draw
@@ -26,6 +26,11 @@ const PRUNE_DUR = 1.5
 const HOLD = 5.2
 const FADE = 0.9
 const RIM_U = 1.1 // where the target sits, just outside the rim
+const EDGE_LEVELS = 40 // alpha quantisation of the explored edges
+const RING_DASH = [1, 4]
+const RIM_DASH = [2, 6]
+const APPROACH_DASH = [2, 4]
+const LOCK_DASH = [3, 5]
 
 export function createReasoning({ pal, seed = 1 }) {
   const depthMax = byTier({ high: 6, medium: 6, low: 5 })
@@ -42,6 +47,17 @@ export function createReasoning({ pal, seed = 1 }) {
   const glowIon = glowSprite(pal.ion)
   const glowAtmo = glowSprite(pal.atmo)
   const dots = rectBatch()
+  const depthLabels = Array.from({ length: depthMax }, (_, i) => `D${i + 1}`)
+  // Per-frame scratch, allocated once: explored edges bucketed by quantised
+  // alpha (a count marks each bucket's live part) and still-growing edges.
+  const edgeBuckets = Array.from({ length: EDGE_LEVELS + 1 }, () => [])
+  const edgeCounts = new Uint32Array(EDGE_LEVELS + 1)
+  const partialNodes = []
+  const partialGrow = new Float64Array(maxNodes)
+  const partialAlpha = new Float64Array(maxNodes)
+  // An edge's growth and prune fade depend only on its depth: worked out per level.
+  const levelGrow = new Float64Array(depthMax + 1)
+  const levelAlpha = new Float64Array(depthMax + 1)
   // Once pruning is complete the explored tree is static: cache it as a bitmap.
   let cache = null
   let cacheValid = false
@@ -54,9 +70,19 @@ export function createReasoning({ pal, seed = 1 }) {
   let goal = 0 // goal bearing (rad, smoothed)
   let goalHome = 0
   let lock = 0 // 0..1 target lock
+  let solvedFor = NaN // the goal solve() last ran for
   // Fan geometry (CSS px): origin, range at bearing 0, half-height, max bearing
   const fan = { x0: 0, y0: 0, L: 1, H: 1, phiMax: 1, sinMax: 1 }
-  const tmp = [0, 0]
+  let laidOut = false // node positions + the static strokes below are valid for this tree + fan
+  let rings = null // Path2D: the dotted range rings
+  let rim = null // Path2D: the rim
+  let layoutStamp = 0
+  // Leaf value ticks + dots (Path2D), and what they were traced for
+  const scores = { low: null, high: null, dots: null, scan: NaN, goal: NaN, best: null, stamp: -1 }
+  const tmp = [0, 0] // scratch points (out-params)
+  const pt = [0, 0]
+  let lockBearing = NaN
+  let lockText = ''
 
   const api = {
     status: 'Exploring',
@@ -81,6 +107,8 @@ export function createReasoning({ pal, seed = 1 }) {
     }
     path = []
     cacheValid = false
+    laidOut = false
+    solvedFor = NaN
     solve()
   }
 
@@ -129,7 +157,7 @@ export function createReasoning({ pal, seed = 1 }) {
   }
 
   function makeNode(parent, d) {
-    const n = { parent, d, u: 0, b: 0, kids: [], on: 0, onPath: false, noise: 0, score: 0, sx: 0, sy: 0, dx: 1, dy: 0 }
+    const n = { parent, d, u: 0, b: 0, kids: [], on: 0, onPath: false, noise: 0, score: 0, sx: 0, sy: 0, dx: 1, dy: 0, edge: null }
     if (parent) parent.kids.push(n)
     nodes.push(n)
     return n
@@ -137,9 +165,12 @@ export function createReasoning({ pal, seed = 1 }) {
 
   /** Optimal leaf = deepest leaf whose bearing is closest to the goal. */
   function solve() {
+    if (goal === solvedFor) return // same tree, same goal: same scores and path
+    solvedFor = goal
     let best = null
     let bestCost = Infinity
-    for (const leaf of leaves) {
+    for (let i = 0; i < leaves.length; i++) {
+      const leaf = leaves[i]
       const off = Math.abs(leaf.b - goal)
       leaf.score = sat(1 - off * 1.15 - leaf.noise * 0.12) * (leaf.d < depthMax ? 0.35 : 1)
       const cost = off + (leaf.d < depthMax ? 2 : 0) + leaf.noise * 0.02
@@ -149,7 +180,7 @@ export function createReasoning({ pal, seed = 1 }) {
       }
     }
     if (path.length && path[path.length - 1] === best) return
-    for (const n of path) n.onPath = false
+    for (let i = 0; i < path.length; i++) path[i].onPath = false
     path = []
     for (let n = best; n; n = n.parent) {
       n.onPath = true
@@ -167,6 +198,7 @@ export function createReasoning({ pal, seed = 1 }) {
     fan.phiMax = wide ? 1.02 : 0.96
     fan.sinMax = Math.sin(fan.phiMax)
     cacheValid = false
+    laidOut = false
   }
 
   /** Screen position for range u (0 = T−0, 1 = rim) and normalised bearing b (−1..1). */
@@ -182,7 +214,7 @@ export function createReasoning({ pal, seed = 1 }) {
     const phi = b * fan.phiMax
     const x = fan.L * Math.cos(phi)
     const y = (fan.H * Math.sin(phi)) / fan.sinMax
-    const d = Math.hypot(x, y) || 1
+    const d = hypot(x, y) || 1
     out[0] = x / d
     out[1] = y / d
     return out
@@ -194,8 +226,17 @@ export function createReasoning({ pal, seed = 1 }) {
     return Math.max(-1, Math.min(1, phi / fan.phiMax))
   }
 
+  /**
+   * Screen positions + ray directions, and the strokes that only change with
+   * them (each edge, the range rings, the rim) traced once into Path2Ds: a
+   * frame then strokes them instead of re-issuing every segment.
+   */
   function layout() {
-    for (const n of nodes) {
+    if (laidOut) return
+    laidOut = true
+    layoutStamp++
+    for (let i = 0; i < nodes.length; i++) {
+      const n = nodes[i]
       toScreen(n.u, n.b, tmp)
       n.sx = tmp[0]
       n.sy = tmp[1]
@@ -203,6 +244,16 @@ export function createReasoning({ pal, seed = 1 }) {
       n.dx = tmp[0]
       n.dy = tmp[1]
     }
+    for (let i = 0; i < nodes.length; i++) {
+      const n = nodes[i]
+      if (!n.parent) continue
+      n.edge = new Path2D()
+      edgePath(n.edge, n.parent, n)
+    }
+    rings = new Path2D()
+    for (let d = 1; d <= depthMax; d++) arcPath(rings, Math.pow(d / depthMax, 0.86), 1.06)
+    rim = new Path2D()
+    arcPath(rim, RIM_U, 1.04)
   }
 
   /* ---- Simulation --------------------------------------------------------------- */
@@ -221,7 +272,11 @@ export function createReasoning({ pal, seed = 1 }) {
 
     const committing = c >= T_COMMIT && c < T_FADE + FADE
     const k = approach(7, dt)
-    for (const n of nodes) n.on += ((committing && n.onPath ? 1 : 0) - n.on) * k
+    for (let i = 0; i < nodes.length; i++) {
+      const n = nodes[i]
+      const target = committing && n.onPath ? 1 : 0
+      if (n.on !== target) n.on += (target - n.on) * k // (at its target, the step is a no-op)
+    }
     lock += ((committing ? 1 : 0) - lock) * approach(4, dt)
 
     api.status = c < T_GROW ? 'Exploring' : c < T_PRUNE ? 'Evaluating' : c < T_COMMIT ? 'Pruning' : s.pointer ? 'Re-planning' : 'Converged'
@@ -232,7 +287,7 @@ export function createReasoning({ pal, seed = 1 }) {
     c = T_COMMIT + 1.6
     goal = goalHome
     solve()
-    for (const n of nodes) n.on = n.onPath ? 1 : 0
+    for (let i = 0; i < nodes.length; i++) nodes[i].on = nodes[i].onPath ? 1 : 0
     lock = 1
     api.status = 'Converged'
   }
@@ -274,7 +329,8 @@ export function createReasoning({ pal, seed = 1 }) {
     drawScores(ctx, alpha)
 
     // Branch points near the root
-    for (const n of nodes) {
+    for (let i = 0; i < nodes.length; i++) {
+      const n = nodes[i]
       if (!n.parent || n.d > 3 || !n.kids.length || c < (n.d - 1) * GROW_STEP + GROW_DUR) continue
       dots.dot(n.sx, n.sy, 2, alpha * (0.6 - n.d * 0.1))
     }
@@ -291,7 +347,7 @@ export function createReasoning({ pal, seed = 1 }) {
   }
 
   function edgePath(g, p, n) {
-    const k = Math.hypot(n.sx - p.sx, n.sy - p.sy) * 0.42
+    const k = hypot(n.sx - p.sx, n.sy - p.sy) * 0.42
     g.moveTo(p.sx, p.sy)
     g.bezierCurveTo(p.sx + p.dx * k, p.sy + p.dy * k, n.sx - n.dx * k, n.sy - n.dy * k, n.sx, n.sy)
   }
@@ -309,22 +365,26 @@ export function createReasoning({ pal, seed = 1 }) {
     g.strokeStyle = pal.atmo.rgb
     g.lineWidth = 1
     g.beginPath()
-    for (const n of nodes) if (n.parent) edgePath(g, n.parent, n)
+    for (let i = 0; i < nodes.length; i++) if (nodes[i].parent) edgePath(g, nodes[i].parent, nodes[i])
     g.stroke()
     cacheValid = true
   }
 
   function drawExplored(ctx, alpha, e) {
     // Explored edges, batched by quantised alpha.
-    const buckets = new Map()
-    const partials = []
+    let partials = 0
     const scan = scanRange()
-    for (const n of nodes) {
+    for (let d = 1; d <= depthMax; d++) {
+      levelGrow[d] = easeOut((c - (d - 1) * GROW_STEP) / GROW_DUR)
+      const prune = easeInOut((c - T_PRUNE - (depthMax - d) * 0.13) / 0.55)
+      levelAlpha[d] = (0.4 + e * 0.2) * (1 - prune) + (0.09 + e * 0.05) * prune
+    }
+    for (let i = 0; i < nodes.length; i++) {
+      const n = nodes[i]
       if (!n.parent) continue
-      const grow = easeOut((c - (n.d - 1) * GROW_STEP) / GROW_DUR)
+      const grow = levelGrow[n.d]
       if (grow <= 0) continue
-      const prune = easeInOut((c - T_PRUNE - (depthMax - n.d) * 0.13) / 0.55)
-      let a = (0.4 + e * 0.2) * (1 - prune) + (0.09 + e * 0.05) * prune
+      let a = levelAlpha[n.d]
       // A brief wake just inside the evaluation front.
       if (scan > 0 && c < T_PRUNE) {
         const du = scan - n.u
@@ -332,66 +392,67 @@ export function createReasoning({ pal, seed = 1 }) {
       }
       a *= alpha
       if (grow < 1) {
-        partials.push(n, grow, a)
+        partialNodes[partials] = n
+        partialGrow[partials] = grow
+        partialAlpha[partials] = a
+        partials++
         continue
       }
-      const key = Math.round(a * 40)
+      let key = Math.round(a * EDGE_LEVELS)
       if (key <= 0) continue
-      let list = buckets.get(key)
-      if (!list) buckets.set(key, (list = []))
-      list.push(n)
+      if (key > EDGE_LEVELS) key = EDGE_LEVELS
+      edgeBuckets[key][edgeCounts[key]++] = n
     }
 
     ctx.lineWidth = 1
     ctx.strokeStyle = pal.atmo.rgb
-    for (const [key, list] of buckets) {
-      ctx.globalAlpha = key / 40
-      ctx.beginPath()
-      for (const n of list) edgePath(ctx, n.parent, n)
-      ctx.stroke()
+    for (let key = 1; key <= EDGE_LEVELS; key++) {
+      const count = edgeCounts[key]
+      if (!count) continue
+      const list = edgeBuckets[key]
+      const bucket = new Path2D()
+      for (let i = 0; i < count; i++) bucket.addPath(list[i].edge)
+      ctx.globalAlpha = key / EDGE_LEVELS
+      ctx.stroke(bucket)
+      edgeCounts[key] = 0
     }
-    const tip = [0, 0]
-    for (let i = 0; i < partials.length; i += 3) {
-      const n = partials[i]
-      ctx.globalAlpha = partials[i + 2]
+    for (let i = 0; i < partials; i++) {
+      const n = partialNodes[i]
+      ctx.globalAlpha = partialAlpha[i]
       ctx.beginPath()
-      partialEdge(ctx, n.parent, n, partials[i + 1])
+      partialEdge(ctx, n.parent, n, partialGrow[i], pt)
       ctx.stroke()
       // Bright growth tip
-      edgePoint(n.parent, n, partials[i + 1], tip)
-      dots.dot(tip[0], tip[1], 1.6, alpha * 0.95)
+      dots.dot(pt[0], pt[1], 1.6, alpha * 0.95)
     }
     dots.flush(ctx, pal.ion.rgb)
 
     // Evaluation front: an arc of constant range sweeping outwards
     if (scan > 0 && c < T_PRUNE + 0.25) {
       const a = alpha * (1 - easeInOut((c - T_PRUNE) / 0.25)) * Math.min(1, (c - T_EVAL) / 0.25)
+      const front = new Path2D() // traced once, stroked twice (glow, then core)
+      arcPath(front, scan, 1.1)
       ctx.globalCompositeOperation = 'lighter'
       ctx.strokeStyle = pal.atmo.rgb
       ctx.lineWidth = 9
       ctx.globalAlpha = a * 0.07
-      arc(ctx, scan, 1.1)
+      ctx.stroke(front)
       ctx.lineWidth = 1
       ctx.globalAlpha = a * 0.75
       ctx.strokeStyle = pal.ion.rgb
-      arc(ctx, scan, 1.1)
+      ctx.stroke(front)
       ctx.globalCompositeOperation = 'source-over'
     }
   }
 
-  /** Strokes the arc of constant range u across bearings ±span. */
-  function arc(ctx, u, span, dash = null) {
-    const p = [0, 0]
-    if (dash) ctx.setLineDash(dash)
-    ctx.beginPath()
+  /** Traces the arc of constant range u across bearings ±span (as its own subpath). */
+  function arcPath(g, u, span) {
     const steps = 36
     for (let i = 0; i <= steps; i++) {
-      toScreen(u, -span + (2 * span * i) / steps, p)
-      if (i) ctx.lineTo(p[0], p[1])
-      else ctx.moveTo(p[0], p[1])
+      toScreen(u, -span + (2 * span * i) / steps, tmp)
+      if (i) g.lineTo(tmp[0], tmp[1])
+      else g.moveTo(tmp[0], tmp[1])
     }
-    ctx.stroke()
-    if (dash) ctx.setLineDash([])
   }
 
   /** Leaf value ticks: drawn as the evaluation front passes, faded by pruning. */
@@ -400,22 +461,40 @@ export function createReasoning({ pal, seed = 1 }) {
     const scan = scanRange()
     const prune = easeInOut((c - T_PRUNE) / 0.9)
     const best = path[path.length - 1]
-    ctx.lineWidth = 1
-    for (const pass of [0, 1]) {
-      ctx.strokeStyle = pass ? pal.ion.rgb : pal.atmo.rgb
-      ctx.globalAlpha = alpha * (pass ? 0.95 : 0.55) * (1 - prune * 0.88)
-      ctx.beginPath()
-      for (const leaf of leaves) {
-        if (leaf.u > scan || leaf === best) continue
-        if ((leaf.score > 0.72) !== Boolean(pass)) continue
+    // The ticks only change while the front sweeps or the goal moves: retrace them then.
+    if (scan !== scores.scan || goal !== scores.goal || best !== scores.best || layoutStamp !== scores.stamp) {
+      scores.scan = scan
+      scores.goal = goal
+      scores.best = best
+      scores.stamp = layoutStamp
+      scores.low = new Path2D()
+      scores.high = new Path2D()
+      scores.dots = new Path2D()
+      for (let i = 0; i < leaves.length; i++) {
+        const leaf = leaves[i]
+        if (leaf.u > scan) continue
+        scores.dots.rect(leaf.sx - 0.8, leaf.sy - 0.8, 1.6, 1.6)
+        if (leaf === best) continue
+        const g = leaf.score > 0.72 ? scores.high : scores.low
         const len = 2 + leaf.score * 11
-        ctx.moveTo(leaf.sx + leaf.dx * 3, leaf.sy + leaf.dy * 3)
-        ctx.lineTo(leaf.sx + leaf.dx * (3 + len), leaf.sy + leaf.dy * (3 + len))
+        g.moveTo(leaf.sx + leaf.dx * 3, leaf.sy + leaf.dy * 3)
+        g.lineTo(leaf.sx + leaf.dx * (3 + len), leaf.sy + leaf.dy * (3 + len))
       }
-      ctx.stroke()
     }
-    for (const leaf of leaves) if (leaf.u <= scan) dots.dot(leaf.sx, leaf.sy, 1.6, alpha * (0.75 - prune * 0.45))
-    dots.flush(ctx, pal.atmo.rgb)
+    ctx.lineWidth = 1
+    ctx.strokeStyle = pal.atmo.rgb
+    ctx.globalAlpha = alpha * 0.55 * (1 - prune * 0.88)
+    ctx.stroke(scores.low)
+    ctx.strokeStyle = pal.ion.rgb
+    ctx.globalAlpha = alpha * 0.95 * (1 - prune * 0.88)
+    ctx.stroke(scores.high)
+    // Leaf dots: one alpha for all, quantised like rectBatch's.
+    const a = alpha * (0.75 - prune * 0.45)
+    if (a > 0.01) {
+      ctx.fillStyle = pal.atmo.rgb
+      ctx.globalAlpha = Math.min(16, Math.max(1, Math.round(a * 16))) / 16
+      ctx.fill(scores.dots)
+    }
   }
 
   function drawGuides(ctx, boot, e) {
@@ -423,50 +502,51 @@ export function createReasoning({ pal, seed = 1 }) {
     ctx.strokeStyle = pal.text.rgb
     ctx.lineWidth = 1
     ctx.globalAlpha = (0.13 + e * 0.04) * boot
-    const lab = [0, 0]
+    ctx.setLineDash(RING_DASH) // restarts on each ring (each is its own subpath)
+    ctx.stroke(rings)
+    ctx.setLineDash(NO_DASH)
     for (let d = 1; d <= depthMax; d++) {
       const u = Math.pow(d / depthMax, 0.86)
-      arc(ctx, u, 1.06, [1, 4])
-    }
-    for (let d = 1; d <= depthMax; d++) {
-      const u = Math.pow(d / depthMax, 0.86)
-      toScreen(u, -1.13, lab)
-      label(ctx, `D${d}`, lab[0], lab[1] - 2, { alpha: 0.45 * boot, align: 'center', size: 8.5 })
+      toScreen(u, -1.13, tmp)
+      label(ctx, depthLabels[d - 1], tmp[0], tmp[1] - 2, { alpha: 0.45 * boot, align: 'center', size: 8.5 })
     }
     // The rim: where candidate trajectories are scored.
     ctx.globalAlpha = (0.2 + e * 0.06) * boot
     ctx.strokeStyle = pal.atmo.rgb
-    arc(ctx, RIM_U, 1.04, [2, 6])
+    ctx.setLineDash(RIM_DASH)
+    ctx.stroke(rim)
+    ctx.setLineDash(NO_DASH)
   }
 
   function drawPath(ctx, s, alpha) {
     if (path.length < 2) return
     // Glow underlay + crisp core line, per edge so a re-route cross-fades.
     ctx.lineCap = 'round'
-    for (const pass of [0, 1]) {
+    for (let pass = 0; pass < 2; pass++) {
       ctx.lineWidth = pass ? 1.6 : 7
       ctx.strokeStyle = pass ? pal.text.rgb : pal.atmo.rgb
       ctx.globalCompositeOperation = pass ? 'source-over' : 'lighter'
-      for (const n of nodes) {
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i]
         if (!n.parent || n.on < 0.01) continue
         ctx.globalAlpha = alpha * n.on * (pass ? 0.95 : 0.16 + s.energy * 0.1)
-        ctx.beginPath()
-        edgePath(ctx, n.parent, n)
-        ctx.stroke()
+        ctx.stroke(n.edge)
       }
     }
     ctx.globalCompositeOperation = 'source-over'
     ctx.lineCap = 'butt'
 
     // Path waypoints
-    for (const n of path) if (n.parent && n.on > 0.05) dots.dot(n.sx, n.sy, 3, alpha * n.on)
+    for (let i = 0; i < path.length; i++) {
+      const n = path[i]
+      if (n.parent && n.on > 0.05) dots.dot(n.sx, n.sy, 3, alpha * n.on)
+    }
     dots.flush(ctx, pal.text.rgb)
 
     // Packets streaming root → target
     if (lock > 0.05) {
       const segs = path.length - 1
       const speed = 2.4 + s.energy * 2
-      const pt = [0, 0]
       for (let i = 0; i < 3; i++) {
         let u = ((c * speed) / segs + i / 3) % 1
         u *= segs
@@ -499,21 +579,22 @@ export function createReasoning({ pal, seed = 1 }) {
 
   function drawTarget(ctx, alpha) {
     const leaf = path[path.length - 1]
-    const p = toScreen(RIM_U, goal, [0, 0])
-    const [x, y] = p
+    toScreen(RIM_U, goal, tmp)
+    const x = tmp[0]
+    const y = tmp[1]
     const a = alpha * (0.55 + lock * 0.45)
     // Final approach: optimal leaf → target
     if (leaf && lock > 0.02) {
       ctx.globalAlpha = alpha * lock * 0.75
       ctx.strokeStyle = pal.text.rgb
       ctx.lineWidth = 1
-      ctx.setLineDash([2, 4])
+      ctx.setLineDash(APPROACH_DASH)
       ctx.beginPath()
       ctx.moveTo(leaf.sx + leaf.dx * 4, leaf.sy + leaf.dy * 4)
-      const d = Math.hypot(x - leaf.sx, y - leaf.sy) || 1
+      const d = hypot(x - leaf.sx, y - leaf.sy) || 1
       ctx.lineTo(x - ((x - leaf.sx) / d) * 13, y - ((y - leaf.sy) / d) * 13)
       ctx.stroke()
-      ctx.setLineDash([])
+      ctx.setLineDash(NO_DASH)
     }
     const r = 9 - lock * 1.5
     ctx.strokeStyle = lock > 0.5 ? pal.text.rgb : pal.atmo.rgb
@@ -533,12 +614,12 @@ export function createReasoning({ pal, seed = 1 }) {
     if (lock > 0.02) {
       // Rotating lock ring
       ctx.globalAlpha = alpha * lock * 0.7
-      ctx.setLineDash([3, 5])
+      ctx.setLineDash(LOCK_DASH)
       ctx.lineDashOffset = -c * 12
       ctx.beginPath()
       ctx.arc(x, y, 17, 0, Math.PI * 2)
       ctx.stroke()
-      ctx.setLineDash([])
+      ctx.setLineDash(NO_DASH)
       ctx.lineDashOffset = 0
       drawGlow(ctx, glowAtmo, x, y, 34, alpha * lock * 0.6)
       ctx.globalAlpha = alpha * lock
@@ -546,13 +627,17 @@ export function createReasoning({ pal, seed = 1 }) {
       ctx.fillRect(x - 1.5, y - 1.5, 3, 3)
     }
     const bearing = Math.round(goal * fan.phiMax * (180 / Math.PI))
-    const text = lock > 0.5 ? `LOCK ${bearing >= 0 ? '+' : '−'}${pad(Math.abs(bearing), 2)}°` : 'TGT'
+    if (bearing !== lockBearing) {
+      lockBearing = bearing
+      lockText = `LOCK ${bearing >= 0 ? '+' : '−'}${pad(Math.abs(bearing), 2)}°`
+    }
+    const text = lock > 0.5 ? lockText : 'TGT'
     label(ctx, text, x, y - 29, { alpha: a * 0.85, align: 'center', size: 8.5 })
   }
 
   /* ---- Edge geometry: a cubic that leaves along the parent's ray -------------- */
   function edgePoint(p, n, u, out) {
-    const k = Math.hypot(n.sx - p.sx, n.sy - p.sy) * 0.42
+    const k = hypot(n.sx - p.sx, n.sy - p.sy) * 0.42
     const x1 = p.sx + p.dx * k
     const y1 = p.sy + p.dy * k
     const x2 = n.sx - n.dx * k
@@ -567,13 +652,30 @@ export function createReasoning({ pal, seed = 1 }) {
     return out
   }
 
-  function partialEdge(ctx, p, n, grow) {
-    const steps = 10
-    const pt = [0, 0]
+  /**
+   * Traces the first `grow` (0..1) of edge p → n: the matching piece of its
+   * cubic, split with de Casteljau, so a growing edge is the same curve it
+   * completes as. Its tip goes to `tip`.
+   */
+  function partialEdge(ctx, p, n, grow, tip) {
+    const k = hypot(n.sx - p.sx, n.sy - p.sy) * 0.42
+    const x1 = p.sx + p.dx * k
+    const y1 = p.sy + p.dy * k
+    const x2 = n.sx - n.dx * k
+    const y2 = n.sy - n.dy * k
+    const ax = p.sx + (x1 - p.sx) * grow
+    const ay = p.sy + (y1 - p.sy) * grow
+    const bx = x1 + (x2 - x1) * grow
+    const by = y1 + (y2 - y1) * grow
+    const cx = x2 + (n.sx - x2) * grow
+    const cy = y2 + (n.sy - y2) * grow
+    const abx = ax + (bx - ax) * grow
+    const aby = ay + (by - ay) * grow
+    const bcx = bx + (cx - bx) * grow
+    const bcy = by + (cy - by) * grow
+    tip[0] = abx + (bcx - abx) * grow
+    tip[1] = aby + (bcy - aby) * grow
     ctx.moveTo(p.sx, p.sy)
-    for (let k = 1; k <= steps; k++) {
-      edgePoint(p, n, (grow * k) / steps, pt)
-      ctx.lineTo(pt[0], pt[1])
-    }
+    ctx.bezierCurveTo(ax, ay, abx, aby, tip[0], tip[1])
   }
 }

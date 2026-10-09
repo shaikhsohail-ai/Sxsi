@@ -20,15 +20,15 @@ export const PUBLIC = [
   ['help', 'List commands'],
   ['status', 'Run a systems check'],
   ['mission', 'Brief on the next mission'],
-  ['fleet', 'The vehicles in development'],
+  ['fleet', 'The vehicles on the roadmap'],
   ['manifest', 'Every mission, in order'],
   ['launch', 'Start a T−10 countdown'],
   ['about', 'What SXSI is'],
-  ['contact', 'Open a channel to the crew'],
+  ['contact', 'Open a channel to the crew · --copy copies the email'],
   ['share', 'Broadcast sxsi.ai on X'],
   ['date', 'UTC mission clock (also: time)'],
   ['whoami', 'Your crew record'],
-  ['coordinates', 'Launch site'],
+  ['coordinates', 'Launch site (simulated)'],
   ['clear', 'Clear the screen (Ctrl+L)'],
 ]
 export const COMPLETIONS = [...PUBLIC.map(([name]) => name), 'time']
@@ -47,14 +47,14 @@ const FLEET = [
   { num: '04', name: 'Zenith', orbit: null, role: null, status: 'Classified', kind: 'live' },
 ]
 
-/* Manifest fallback — the Manifest section's markup is the source of truth
-   and is read first (see readManifest). */
+/* Manifest fallback (copy kept in step with manifest.html) — the Manifest
+   section's markup is the source of truth and is read first (see readManifest). */
 const MANIFEST = [
-  { number: '001', name: 'First Light', status: 'complete', window: 'Q4 2026', objective: 'sxsi.ai goes live and the mission is announced.' },
+  { number: '001', name: 'First Light', status: 'complete', window: 'Q4 2026', objective: 'sxsi.ai goes live and the mission is announced. The first signal leaves the pad.' },
   { number: '002', name: 'Ignition', status: 'active', window: '01 Jan 2027', objective: 'Assemble the crew. Secure the compute. Light the engines.' },
-  { number: '003', name: 'Ascent', status: 'planned', window: '2027', objective: 'First model flight test. Measure everything, publish what we learn.' },
-  { number: '004', name: 'Orbit', status: 'planned', window: 'NET 2028', objective: 'Public release of the fleet.' },
-  { number: '005', name: 'Beyond', status: 'tbd', window: 'TBD', objective: 'Superintelligence research, done safely.' },
+  { number: '003', name: 'Ascent', status: 'planned', window: '2027', objective: 'First model flight test. Leave the pad, measure everything, publish what we learn.' },
+  { number: '004', name: 'Orbit', status: 'planned', window: 'NET 2028', objective: 'Public release of the fleet. Intelligence in a stable orbit, built for anyone to reach.' },
+  { number: '005', name: 'Beyond', status: 'tbd', window: 'TBD', objective: 'Superintelligence research, done safely. Past the edge of the map, with safety as the flight rule — not a footnote.' },
 ]
 const STATUS_LABEL = { complete: ['Complete', 'ok'], active: ['In progress', 'live'], planned: ['Planned', 'idle'], tbd: ['TBD', 'idle'] }
 
@@ -88,7 +88,7 @@ function readManifest() {
       status: item.dataset.status || known.status || 'planned',
       name: clean(item.querySelector('[data-mission-name]')?.textContent) || known.name || `Mission ${number}`,
       window: clean(windowEl?.textContent) || known.window || 'TBD',
-      objective: known.objective || clean(item.querySelector('.s-manifest__objective')?.textContent),
+      objective: clean(item.querySelector('.s-manifest__objective')?.textContent) || known.objective,
     }
   })
 }
@@ -98,16 +98,24 @@ const target = () => {
   return Number.isFinite(t) ? t : null
 }
 
-/** "T− 084D 02:41:10" (or T+ once the window has passed). */
+/**
+ * "T− 084D 02:41:10". Once the target passes the count holds at T− 000D
+ * 00:00:00 — never T+: nothing is claimed to have launched (same rule as the
+ * hero and the manifest).
+ */
 export function formatCountdown(now = Date.now()) {
   const at = target()
   if (at == null) return 'T− TBD'
-  const diff = at - now
-  const sign = diff >= 0 ? 'T−' : 'T+'
-  let s = Math.floor(Math.abs(diff) / 1000)
+  let s = Math.floor(Math.max(0, at - now) / 1000)
   const d = Math.floor(s / 86400)
   s -= d * 86400
-  return `${sign} ${pad(d, 3)}D ${pad(s / 3600)}:${pad((s % 3600) / 60)}:${pad(s % 60)}`
+  return `T− ${pad(d, 3)}D ${pad(s / 3600)}:${pad((s % 3600) / 60)}:${pad(s % 60)}`
+}
+
+/** True once the mission's target time has passed (the window is open, awaiting an update). */
+export function windowOpen(now = Date.now()) {
+  const at = target()
+  return at != null && at <= now
 }
 
 const formatDate = (ms) => {
@@ -116,8 +124,9 @@ const formatDate = (ms) => {
 }
 
 function formatCoords() {
-  const lat = Number(COORDINATES?.lat ?? 28.4858)
-  const lon = Number(COORDINATES?.lon ?? -80.5444)
+  // Brand fiction: open North Atlantic, no real facility (see config.js).
+  const lat = Number(COORDINATES?.lat ?? 31.4159)
+  const lon = Number(COORDINATES?.lon ?? -42.7183)
   return { lat: `${Math.abs(lat).toFixed(4)}° ${lat >= 0 ? 'N' : 'S'}`, lon: `${Math.abs(lon).toFixed(4)}° ${lon >= 0 ? 'E' : 'W'}` }
 }
 
@@ -135,6 +144,9 @@ function distance(a, b) {
   }
   return dp[b.length]
 }
+
+/** Own-key lookup: command tables must never answer with Object.prototype members. */
+const has = (table, key) => Object.hasOwn(table, key)
 
 const th = (node) => (node.classList.add('t-row--th'), node)
 const kv = (key, ...value) => row('kv', em('dim', key), h('span', 't-cell', ...value))
@@ -203,7 +215,7 @@ export function createCommands(api) {
         kv('Status', dot('live'), 'In progress'),
         kv('Pad', PAD),
         kv('Target', at ? `${formatDate(at)} · ${pad(new Date(at).getUTCHours())}:${pad(new Date(at).getUTCMinutes())} UTC` : 'TBD'),
-        kv('Count', em('ignite', formatCountdown())),
+        kv('Count', em('ignite', formatCountdown()), windowOpen() ? em('dim', ' · window open, awaiting update') : null),
         kv('Objective', known?.objective || 'Assemble the crew. Secure the compute. Light the engines.'),
         gap(),
         line('Board it: type ', cmd('contact'), ', or head to ', anchor('Join the mission', '#join'), '.'),
@@ -260,20 +272,27 @@ export function createCommands(api) {
       ])
     },
 
-    async contact() {
+    // The visitor's clipboard is theirs: it is only written on request (`contact --copy`).
+    async contact(args = []) {
       const nodes = [head('Open channel'), kv('Email', link(CONTACT_EMAIL, `mailto:${CONTACT_EMAIL}`, { external: false }))]
       for (const [name, url] of Object.entries(SOCIAL || {})) {
         if (url && /^https:\/\//.test(url)) nodes.push(kv(name === 'x' ? 'X' : name[0].toUpperCase() + name.slice(1), link(url.replace(/^https:\/\/(www\.)?/, ''), url)))
       }
       nodes.push(gap(), line('Select the address to open your mail client.'))
-      let copied = false
-      try {
-        await navigator.clipboard?.writeText(CONTACT_EMAIL)
-        copied = Boolean(navigator.clipboard)
-      } catch {
-        copied = false
+      if (args.some((arg) => arg === '--copy' || arg === '-c' || arg === 'copy')) {
+        let copied = false
+        try {
+          if (navigator.clipboard) {
+            await navigator.clipboard.writeText(CONTACT_EMAIL)
+            copied = true
+          }
+        } catch {
+          copied = false
+        }
+        nodes.push(copied ? tone('dim', 'Address copied to your clipboard.') : tone('dim', 'Clipboard unavailable. Select the address above to copy it.'))
+      } else {
+        nodes.push(line(em('dim', 'Want it on your clipboard? Type '), cmd('contact --copy'), em('dim', '.')))
       }
-      if (copied) nodes.push(tone('dim', 'Address copied to your clipboard.'))
       emit('sound:cue', { type: 'confirm' })
       return print(nodes)
     },
@@ -320,7 +339,7 @@ export function createCommands(api) {
     coordinates() {
       const { lat, lon } = formatCoords()
       return print([
-        head('Launch site'),
+        head('Launch site ', em('dim', '· simulated')),
         kv('Pad', PAD),
         kv('Latitude', lat),
         kv('Longitude', lon),
@@ -366,7 +385,8 @@ export function createCommands(api) {
     'open the pod bay doors': () => print([line('Pod bay doors are not on this console.'), tone('dim', 'It is scripted — no HAL aboard.')]),
   }
 
-  // Aliases
+  // Aliases. Lookups go through `has()` so input such as `constructor` or
+  // `__proto__` never resolves to an Object.prototype member.
   const ALIASES = {
     time: 'date',
     '?': 'help',
@@ -495,7 +515,7 @@ export function createCommands(api) {
 
   /* ---- Ping (simulated light-lag to low orbit) ---------------------------- */
   async function runPing() {
-    const altitude = 550 // km
+    const altitude = 408 // km — the same orbit the hero HUD reads out
     const floor = ((2 * altitude) / 299792.458) * 1000 // round trip at c, ms
     await print(line(`PING ground → orbit (${altitude} km) · 56 bytes · `, em('dim', 'simulated')))
     const times = []
@@ -525,15 +545,16 @@ export function createCommands(api) {
   /* ---- Dispatch ---------------------------------------------------------- */
   function resolve(raw) {
     const lower = raw.toLowerCase().replace(/\s+/g, ' ').trim()
-    if (ALIASES[lower]) return { name: ALIASES[lower], args: [] }
-    if (COMMANDS[lower] && lower.includes(' ')) return { name: lower, args: [] }
+    if (has(ALIASES, lower)) return { name: ALIASES[lower], args: [] }
+    if (has(COMMANDS, lower) && lower.includes(' ')) return { name: lower, args: [] }
     const [first, ...args] = lower.split(' ')
-    const name = ALIASES[first] || first
+    const name = has(ALIASES, first) ? ALIASES[first] : first
     if (name === 'rm' || lower.startsWith('rm ')) return { name: 'rm', args }
     return { name, args }
   }
 
-  function unknown(raw, name) {
+  function unknown(raw, input) {
+    const name = String(input ?? '')
     const words = raw.trim().split(/\s+/).length
     if (/[?]/.test(raw) || words >= 4) {
       return print([
@@ -567,7 +588,7 @@ export function createCommands(api) {
         return print(tone('warn', 'Countdown in progress. Type abort to hold.'))
       }
 
-      const handler = Object.hasOwn(COMMANDS, name) ? COMMANDS[name] : null
+      const handler = has(COMMANDS, name) ? COMMANDS[name] : null
       emit('sound:cue', { type: 'blip' })
       if (!handler) return unknown(text, name)
       return handler(args, text)

@@ -24,7 +24,7 @@ import {
   SMOKE_VERT,
   SMOKE_FRAG,
 } from './shaders.js'
-import { BEATS, missionTime, altitudeAt, skyPhaseAt } from './profile.js'
+import { BEATS, missionTime, altitudeAt, skyPhaseAt, pitchAt } from './profile.js'
 import { clamp, lerp, seededRandom } from '../../lib/dom.js'
 
 const FOV = 20
@@ -413,6 +413,7 @@ export function createAscentScene(canvas, { tier = 'high', dpr = 1 } = {}) {
   }
 
   // --- per-frame state -------------------------------------------------------------
+  let disposed = false
   let idleFlow = 0
   let breath = 0
   // Wall-clock "kicks": a flash, shock ring and camera jolt that play once
@@ -465,11 +466,7 @@ export function createAscentScene(canvas, { tier = 'high', dpr = 1 } = {}) {
     const deployT = smooth(BEATS.orbit - 0.005, 0.99, p)
 
     // ---- vehicle pose ------------------------------------------------------------------
-    const tilt =
-      0.26 * smooth(0.12, BEATS.maxq, p) +
-      0.18 * smooth(BEATS.maxq, BEATS.meco, p) +
-      0.28 * smooth(BEATS.ses, BEATS.seco, p) +
-      0.08 * smooth(BEATS.seco, 1, p)
+    const tilt = pitchAt(p)
     // payload rides forward off the spent upper stage once in orbit
     const payloadY = DIM.payloadY + 3.6 * Math.pow(deployT, 1.3)
     const focusLocal = lerp(
@@ -777,12 +774,14 @@ export function createAscentScene(canvas, { tier = 'high', dpr = 1 } = {}) {
       return new Promise((resolve) => {
         const idle = window.requestIdleCallback || ((cb) => setTimeout(cb, 200))
         idle(() => {
-          renderer.compile(scene, camera)
+          // (the context may have been lost, and the scene disposed, in the meantime)
+          if (!disposed) renderer.compile(scene, camera)
           resolve()
         })
       })
     },
     dispose() {
+      disposed = true
       v.dispose()
       scene.traverse((obj) => {
         obj.geometry?.dispose?.()

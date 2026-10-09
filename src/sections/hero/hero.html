@@ -34,10 +34,10 @@
       <p class="s-hero__hud-item hud">
         <span class="s-hero__hud-label">Ground track</span>
         <span class="hud-value">
-          <span class="sr-only">28.4858° N, 80.5444° W</span>
-          <span aria-hidden="true" data-hero-lat>28.4858° N</span>
+          <span class="sr-only">31.4159° N, 42.7183° W</span>
+          <span aria-hidden="true" data-hero-lat>31.4159° N</span>
           <span class="s-hero__hud-sep" aria-hidden="true">/</span>
-          <span aria-hidden="true" data-hero-lon>80.5444° W</span>
+          <span aria-hidden="true" data-hero-lon>42.7183° W</span>
         </span>
         <span class="s-hero__sim">Simulated</span>
       </p>
@@ -73,16 +73,17 @@
               <path d="M4 12h15M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" />
             </svg>
           </a>
-          <a class="btn s-hero__cta" href="#join">Join the mission</a>
+          <a class="btn s-hero__cta s-hero__cta--ghost" href="#join">Join the mission</a>
         </div>
       </div>
     </div>
 
-    <!-- Bottom bar: next launch countdown, scroll cue, mission clock -->
+    <!-- Bottom bar: next mission's target window, scroll cue, mission clock.
+         The window is a roadmap target, never announced as a launch. -->
     <div class="s-hero__bottom" data-hero-bottom>
       <div class="s-hero__launch ticks" role="group" aria-labelledby="hero-launch-label">
         <div class="s-hero__launch-head">
-          <span class="status status--live" id="hero-launch-label" data-hero-launch-status>Next launch</span>
+          <span class="status s-hero__launch-status" id="hero-launch-label" data-hero-launch-status>Next window</span>
           <span class="s-hero__launch-pad hud" data-hero-pad>LC-01</span>
         </div>
         <p class="s-hero__launch-name">
@@ -100,6 +101,7 @@
           <span class="s-hero__clock-unit"><span class="s-hero__clock-num" data-hero-s>00</span><span class="s-hero__clock-cap">Sec</span></span>
         </div>
         <p class="s-hero__launch-date hud">
+          Target <span aria-hidden="true">·</span>
           <time datetime="2027-01-01T00:00:00Z" data-hero-date>01 Jan 2027 · 00:00 UTC</time>
         </p>
       </div>
@@ -111,7 +113,7 @@
 
       <p class="s-hero__met hud">
         <span class="s-hero__hud-label">Mission elapsed</span>
-        <span class="hud-value" data-hero-met>T+ 00:00:00</span>
+        <span class="hud-value" data-hero-met>00:00:00</span>
         <span class="s-hero__met-note">Since you arrived</span>
       </p>
     </div>

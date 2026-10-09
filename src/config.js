@@ -19,7 +19,11 @@ export const NEXT_MISSION = {
   pad: 'LC-01',
 }
 
-/** Launch site "coordinates" used in HUD readouts (brand fiction). */
+/**
+ * Launch site "coordinates" used in HUD readouts (brand fiction): open North
+ * Atlantic, no real facility. The section partials repeat the label as their
+ * no-JS fallback — change them together.
+ */
 export const COORDINATES = { lat: 31.4159, lon: -42.7183, label: '31.4159° N  42.7183° W' }
 
 /**

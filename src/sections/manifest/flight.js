@@ -487,22 +487,56 @@ export function createFlight(root, missions, { onReach } = {}) {
   }
   index.addEventListener('click', onIndexClick)
 
-  // Keyboard focus inside the sliding track: bring the focused item under the camera.
+  /** Fully inside the viewport right now? */
+  const onScreen = (el) => {
+    const r = el.getBoundingClientRect()
+    return r.left >= 0 && r.top >= 0 && r.right <= window.innerWidth && r.bottom <= window.innerHeight
+  }
+  /**
+   * Focus-driven flights: a target already on screen glides there (it stays on
+   * screen all the way); anything else jumps, so focus is never off-screen.
+   */
+  const flyForFocus = (y, el) => scrollToTarget(y, onScreen(el) ? { duration: 0.6 } : { immediate: true })
+
+  // Keyboard focus inside the sliding track: fly the focused station under the
+  // camera (or to the closing frame for the outro), revealed at once — it must
+  // never sit on a patch that is off-screen or still waiting to assemble.
+  // Pointer focus (a click on a patch) leaves the track where it is.
   const onFocusIn = (event) => {
     const target = event.target
-    if (!(target instanceof Element)) return
-    const tr = track.getBoundingClientRect()
-    const r = target.getBoundingClientRect()
-    const x = r.left - tr.left + r.width / 2
-    if (r.left >= 0 && r.right <= S.vw) return
-    scrollToTarget(scrollForX(x + (S.tip0 - S.vw / 2)))
+    if (!(target instanceof Element) || !target.matches(':focus-visible')) return
+    const i = missions.findIndex((m) => m.el.contains(target))
+    if (i >= 0) {
+      if (!shown[i]) {
+        shown[i] = true
+        missions[i].el.classList.add('is-in')
+      }
+      flyForFocus(scrollForX(S.stations[i].cx + 4), target)
+    } else if (target.closest('.s-manifest__outro')) {
+      flyForFocus(pin.end, target)
+    } else {
+      const tr = track.getBoundingClientRect()
+      const r = target.getBoundingClientRect()
+      flyForFocus(scrollForX(r.left - tr.left + r.width / 2 + (S.tip0 - S.vw / 2)), target)
+    }
   }
   track.addEventListener('focusin', onFocusIn)
+
+  // The index rides at the foot of the pinned frame. Reached by Shift+Tab from
+  // below (or Tab from above), bring the whole frame back rather than letting
+  // the browser scroll just the bar into a corner of the viewport.
+  const onIndexFocusIn = (event) => {
+    if (!(event.target instanceof Element) || !event.target.matches(':focus-visible')) return
+    const y = window.scrollY
+    if (y < pin.start || y > pin.end) scrollToTarget(clamp(y, pin.start, pin.end), { immediate: true })
+  }
+  index.addEventListener('focusin', onIndexFocusIn)
 
   return () => {
     pin.kill(true)
     fly.kill()
     index.removeEventListener('click', onIndexClick)
+    index.removeEventListener('focusin', onIndexFocusIn)
     track.removeEventListener('focusin', onFocusIn)
     index.hidden = true
     index.replaceChildren()

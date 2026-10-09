@@ -108,17 +108,32 @@ export const expoOut = (t) => (t >= 1 ? 1 : 1 - Math.pow(2, -10 * sat(t)))
 export const approach = (rate, dt) => 1 - Math.exp(-rate * dt)
 /** Wraps an angle to (-π, π]. */
 export const wrapAngle = (a) => Math.atan2(Math.sin(a), Math.cos(a))
+/**
+ * Length of (x, y). Math.hypot allocates on every call (it takes varargs);
+ * this two-argument form inlines to a plain sqrt — use it in frame loops.
+ */
+export const hypot = (x, y) => Math.sqrt(x * x + y * y)
 
 /**
  * Batches small rects into quantised alpha buckets, so hundreds of dots or
- * bars cost a handful of fills instead of one draw call each.
+ * bars cost a handful of fills instead of one draw call each. The buckets are
+ * kept between frames (a count marks their live part), so a frame allocates
+ * nothing.
  */
 export function rectBatch(levels = 16) {
   const buckets = Array.from({ length: levels + 1 }, () => [])
+  const counts = new Uint32Array(levels + 1)
   return {
     add(x, y, w, h, alpha) {
       if (alpha <= 0.01) return
-      buckets[Math.min(levels, Math.max(1, Math.round(alpha * levels)))].push(x, y, w, h)
+      const k = Math.min(levels, Math.max(1, Math.round(alpha * levels)))
+      const b = buckets[k]
+      const n = counts[k]
+      b[n] = x
+      b[n + 1] = y
+      b[n + 2] = w
+      b[n + 3] = h
+      counts[k] = n + 4
     },
     dot(x, y, size, alpha) {
       this.add(x - size / 2, y - size / 2, size, size, alpha)
@@ -126,17 +141,21 @@ export function rectBatch(levels = 16) {
     flush(ctx, color) {
       ctx.fillStyle = color
       for (let k = 1; k <= levels; k++) {
+        const n = counts[k]
+        if (!n) continue
         const b = buckets[k]
-        if (!b.length) continue
         ctx.globalAlpha = k / levels
         ctx.beginPath()
-        for (let i = 0; i < b.length; i += 4) ctx.rect(b[i], b[i + 1], b[i + 2], b[i + 3])
+        for (let i = 0; i < n; i += 4) ctx.rect(b[i], b[i + 1], b[i + 2], b[i + 3])
         ctx.fill()
-        b.length = 0
+        counts[k] = 0
       }
     },
   }
 }
+
+/** Shared empty dash list: `ctx.setLineDash(NO_DASH)` resets without allocating. */
+export const NO_DASH = Object.freeze([])
 
 /** One dotted line (dash pattern) — cheaper than a dot per fillRect. */
 export function dotted(ctx, x0, y0, x1, y1, dash, color, alpha) {
@@ -148,17 +167,29 @@ export function dotted(ctx, x0, y0, x1, y1, dash, color, alpha) {
   ctx.moveTo(x0, y0)
   ctx.lineTo(x1, y1)
   ctx.stroke()
-  ctx.setLineDash([])
+  ctx.setLineDash(NO_DASH)
 }
 
 export const MONO = '"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace'
 
-/** Tiny mono HUD label drawn on canvas. */
+const FONTS = new Map() // size → font string, built once per size
+const lastFont = new WeakMap() // ctx → the font label() last set on it
+
+/**
+ * Tiny mono HUD label drawn on canvas. The font is only assigned when it
+ * changes (mountViz forgets it when a resize resets the context); don't call
+ * this between save() and restore().
+ */
 export function label(ctx, text, x, y, { color = 'rgb(244,246,251)', alpha = 0.5, size = 9, align = 'left', baseline = 'middle' } = {}) {
   if (alpha <= 0.01) return
   ctx.globalAlpha = Math.min(1, alpha)
   ctx.fillStyle = color
-  ctx.font = `500 ${size}px ${MONO}`
+  let font = FONTS.get(size)
+  if (!font) FONTS.set(size, (font = `500 ${size}px ${MONO}`))
+  if (lastFont.get(ctx) !== font) {
+    ctx.font = font
+    lastFont.set(ctx, font)
+  }
   ctx.textAlign = align
   ctx.textBaseline = baseline
   ctx.fillText(text, x, y)
@@ -250,6 +281,7 @@ export function mountViz({ tile, canvas, viz, onStatus, onReadout }) {
     s.h = h
     canvas.width = Math.round(w * dpr)
     canvas.height = Math.round(h * dpr)
+    lastFont.delete(ctx) // resizing reset the context's state
     measureBand()
     viz.resize(s)
     if (s.still && !settled) {

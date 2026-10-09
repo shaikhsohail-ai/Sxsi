@@ -19,6 +19,8 @@ const SHIELDS = [
 ]
 const CORE = 0.17
 const ABORT = 3.4 // seconds
+const SHIELD_LABELS = SHIELDS.map((_, i) => `S${i + 1}`)
+const AXIS_DASH = [2, 3]
 
 export function createSafety({ pal, seed = 4 }) {
   const rand = seededRandom(seed * 6151)
@@ -28,6 +30,20 @@ export function createSafety({ pal, seed = 4 }) {
   const glowAtmo = glowSprite(pal.atmo)
   const glowIgnite = glowSprite(pal.ignite)
   const glowSoft = glowSprite(pal.igniteSoft)
+  // Plasma loop sample angles: their trig (and harmonics) are the same every frame.
+  const plasmaCos = new Float64Array(plasmaSteps + 1)
+  const plasmaSin = new Float64Array(plasmaSteps + 1)
+  const plasmaTh3 = new Float64Array(plasmaSteps + 1)
+  const plasmaTh5 = new Float64Array(plasmaSteps + 1)
+  const plasmaTh8 = new Float64Array(plasmaSteps + 1)
+  for (let j = 0; j <= plasmaSteps; j++) {
+    const th = (j / plasmaSteps) * TAU
+    plasmaCos[j] = Math.cos(th)
+    plasmaSin[j] = Math.sin(th)
+    plasmaTh3[j] = 3 * th
+    plasmaTh5[j] = 5 * th
+    plasmaTh8[j] = 8 * th
+  }
 
   let cx = 0
   let cy = 0
@@ -39,6 +55,15 @@ export function createSafety({ pal, seed = 4 }) {
   let trackI = 0
   const flares = [] // { ang, t0, dur, wob, hot }
   const impacts = [] // { ring, ang, t0, hot }
+  // The containment-field gradient only changes with the layout, or while an abort tints it.
+  let fieldGrad = null
+  let fieldHot = false
+  let scaleTicks = null // Path2D: the full bearing scale (once the boot has drawn it in)
+  // Each fully revealed shield's segments, traced unrotated about the origin
+  // for its current radius; a frame rotates them into place.
+  const shieldPaths = SHIELDS.map(() => ({ r: -1, path: null }))
+  let trackDeg = NaN
+  let trackText = ''
 
   const api = { status: 'Contained', tone: '', resize, step, draw, trigger, settle, readout }
   return api
@@ -47,6 +72,8 @@ export function createSafety({ pal, seed = 4 }) {
     R = Math.min(s.w * 0.36, s.band.h * 0.395)
     cx = s.w * 0.5
     cy = s.band.mid - R * 0.04
+    fieldGrad = null
+    scaleTicks = null
   }
 
   /** Abort envelope: quick surge, hold, long settle. */
@@ -125,11 +152,14 @@ export function createSafety({ pal, seed = 4 }) {
     const squeeze = 1 - ab * 0.05
 
     // Containment field
-    const field = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * SHIELDS[0].r)
-    field.addColorStop(0, (ab > 0.01 ? pal.ignite : pal.atmo).a(0.1 + ab * 0.12))
-    field.addColorStop(1, pal.atmo.a(0))
+    if (!fieldGrad || ab > 0 || fieldHot) {
+      fieldGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * SHIELDS[0].r)
+      fieldGrad.addColorStop(0, (ab > 0.01 ? pal.ignite : pal.atmo).a(0.1 + ab * 0.12))
+      fieldGrad.addColorStop(1, pal.atmo.a(0))
+      fieldHot = ab > 0
+    }
     ctx.globalAlpha = grow
-    ctx.fillStyle = field
+    ctx.fillStyle = fieldGrad
     ctx.beginPath()
     ctx.arc(cx, cy, R * SHIELDS[0].r * squeeze, 0, TAU)
     ctx.fill()
@@ -138,23 +168,35 @@ export function createSafety({ pal, seed = 4 }) {
     drawAxis(ctx, grow)
 
     // Shields
-    SHIELDS.forEach((sh, i) => {
+    for (let i = 0; i < SHIELDS.length; i++) {
+      const sh = SHIELDS[i]
       const r = R * sh.r * squeeze * (0.82 + 0.18 * grow)
       const rot = time * sh.omega * (1 + e * 0.6)
       const segA = TAU / sh.n
       const len = segA * (1 - sh.gap)
       const reveal = Math.min(sh.n, Math.ceil(sh.n * Math.min(1, boot * 1.6 - i * 0.2)))
-      if (reveal <= 0) return
+      if (reveal <= 0) continue
       ctx.strokeStyle = pal.atmo.rgb
       ctx.lineWidth = sh.w
       ctx.globalAlpha = grow * (0.48 + e * 0.25 + ab * 0.35)
-      ctx.beginPath()
-      for (let k = 0; k < reveal; k++) {
-        const a0 = rot + k * segA
-        ctx.moveTo(cx + Math.cos(a0) * r, cy + Math.sin(a0) * r)
-        ctx.arc(cx, cy, r, a0, a0 + len)
+      if (reveal < sh.n) {
+        // Powering on: segments appear one by one.
+        ctx.beginPath()
+        segments(ctx, cx, cy, r, rot, reveal, segA, len)
+        ctx.stroke()
+      } else {
+        const cache = shieldPaths[i]
+        if (cache.r !== r) {
+          cache.r = r
+          cache.path = new Path2D()
+          segments(cache.path, 0, 0, r, 0, sh.n, segA, len)
+        }
+        ctx.save()
+        ctx.translate(cx, cy)
+        ctx.rotate(rot)
+        ctx.stroke(cache.path)
+        ctx.restore()
       }
-      ctx.stroke()
       // Inner hairline: the shield's second skin
       ctx.lineWidth = 1
       ctx.globalAlpha = grow * 0.12
@@ -171,12 +213,13 @@ export function createSafety({ pal, seed = 4 }) {
       ctx.lineTo(cx + 3.5, cy - r - 4)
       ctx.closePath()
       ctx.fill()
-      label(ctx, `S${i + 1}`, cx + 9, cy - r - 2, { alpha: grow * 0.5, size: 8 })
-    })
+      label(ctx, SHIELD_LABELS[i], cx + 9, cy - r - 2, { alpha: grow * 0.5, size: 8 })
+    }
 
     // Impacts: a hot flare of light on the shield, rippling outwards along it
     ctx.lineCap = 'round'
-    for (const im of impacts) {
+    for (let i = 0; i < impacts.length; i++) {
+      const im = impacts[i]
       const k = (time - im.t0) / 1.6
       if (k < 0) continue
       const r = R * SHIELDS[im.ring].r * squeeze
@@ -218,9 +261,13 @@ export function createSafety({ pal, seed = 4 }) {
       ctx.arc(cx, cy, r, trackA - 0.22, trackA + 0.22)
       ctx.stroke()
       const deg = Math.round(((trackA + Math.PI / 2 + TAU * 2) % TAU) * (180 / Math.PI))
+      if (deg !== trackDeg) {
+        trackDeg = deg
+        trackText = `TRK ${String(deg).padStart(3, '0')}°`
+      }
       const lx = cx + Math.cos(trackA) * (r + 18)
       const ly = cy + Math.sin(trackA) * (r + 18)
-      label(ctx, `TRK ${String(deg).padStart(3, '0')}°`, lx, ly, {
+      label(ctx, trackText, lx, ly, {
         alpha: grow * trackI * 0.9,
         size: 8,
         align: Math.cos(trackA) > 0.2 ? 'left' : Math.cos(trackA) < -0.2 ? 'right' : 'center',
@@ -236,26 +283,45 @@ export function createSafety({ pal, seed = 4 }) {
     ctx.strokeStyle = pal.text.rgb
     ctx.lineWidth = 1
     ctx.globalAlpha = grow * 0.22
-    ctx.beginPath()
+    if (grow < 1) {
+      // Drawing in: the scale is traced as it grows.
+      ctx.beginPath()
+      scalePath(ctx, r, grow)
+      ctx.stroke()
+    } else {
+      if (!scaleTicks) scalePath((scaleTicks = new Path2D()), r, 1)
+      ctx.stroke(scaleTicks)
+    }
+    label(ctx, '090', cx + r + 14, cy, { alpha: grow * 0.42, size: 8 })
+    label(ctx, '270', cx - r - 14, cy, { alpha: grow * 0.42, size: 8, align: 'right' })
+  }
+
+  /** Traces `count` shield segments (arcs of `len`, every `segA`) from angle `rot`. */
+  function segments(g, x, y, r, rot, count, segA, len) {
+    for (let k = 0; k < count; k++) {
+      const a0 = rot + k * segA
+      g.moveTo(x + Math.cos(a0) * r, y + Math.sin(a0) * r)
+      g.arc(x, y, r, a0, a0 + len)
+    }
+  }
+
+  function scalePath(g, r, grow) {
     const n = 120
     for (let i = 0; i < n * grow; i++) {
       const a = (i / n) * TAU - Math.PI / 2
       const len = i % 10 === 0 ? 7 : 3
       const ca = Math.cos(a)
       const sa = Math.sin(a)
-      ctx.moveTo(cx + ca * r, cy + sa * r)
-      ctx.lineTo(cx + ca * (r + len), cy + sa * (r + len))
+      g.moveTo(cx + ca * r, cy + sa * r)
+      g.lineTo(cx + ca * (r + len), cy + sa * (r + len))
     }
-    ctx.stroke()
-    label(ctx, '090', cx + r + 14, cy, { alpha: grow * 0.42, size: 8 })
-    label(ctx, '270', cx - r - 14, cy, { alpha: grow * 0.42, size: 8, align: 'right' })
   }
 
   function drawAxis(ctx, grow) {
     const top = cy - R * 1.13
     const bottom = cy + R * 1.16
     const x = Math.round(cx) + 0.5
-    dotted(ctx, x, top, x, bottom, [2, 3], pal.text.rgb, grow * 0.22)
+    dotted(ctx, x, top, x, bottom, AXIS_DASH, pal.text.rgb, grow * 0.22)
     // Read beside the axis foot, clear of the tile copy below.
     label(ctx, 'ALIGN 1.000 · AXIS LOCKED', cx + 9, bottom - 3, { alpha: grow * 0.62, size: 8 })
   }
@@ -264,7 +330,8 @@ export function createSafety({ pal, seed = 4 }) {
     const r0 = R * CORE
     const r1 = R * SHIELDS[0].r
     ctx.lineWidth = 1.2
-    for (const f of flares) {
+    for (let i = 0; i < flares.length; i++) {
+      const f = flares[i]
       const p = (time - f.t0) / f.dur
       const head = Math.min(1, p)
       const tail = Math.max(0, (p - 0.35) / 1.0)
@@ -301,21 +368,26 @@ export function createSafety({ pal, seed = 4 }) {
     ctx.lineWidth = 1
     ctx.strokeStyle = hot ? pal.igniteSoft.rgb : pal.ion.rgb
     const n = plasmaSteps
+    // Loop invariants, hoisted (same operands, same order: same values)
+    const drift3 = time * 1.3 * speed
+    const drift5 = time * 1.9 * speed
+    const drift8 = time * 2.7 * speed
     for (let i = 0; i < filaments; i++) {
       const k = i / Math.max(1, filaments - 1)
       const base = r * (0.62 + k * 0.62)
       const ph = i * 1.7
+      const ph5 = ph * 2.1
+      const swell = amp * (1 + k)
       ctx.globalAlpha = grow * (0.36 - k * 0.2 + e * 0.1)
       ctx.beginPath()
       for (let j = 0; j <= n; j++) {
-        const th = (j / n) * TAU
         const w =
-          Math.sin(3 * th + time * 1.3 * speed + ph) * 0.55 +
-          Math.sin(5 * th - time * 1.9 * speed + ph * 2.1) * 0.3 +
-          Math.sin(8 * th + time * 2.7 * speed - ph) * 0.15
-        const rr = base * (1 + amp * (1 + k) * w)
-        const x = cx + Math.cos(th) * rr
-        const y = cy + Math.sin(th) * rr
+          Math.sin(plasmaTh3[j] + drift3 + ph) * 0.55 +
+          Math.sin(plasmaTh5[j] - drift5 + ph5) * 0.3 +
+          Math.sin(plasmaTh8[j] + drift8 - ph) * 0.15
+        const rr = base * (1 + swell * w)
+        const x = cx + plasmaCos[j] * rr
+        const y = cy + plasmaSin[j] * rr
         if (j) ctx.lineTo(x, y)
         else ctx.moveTo(x, y)
       }

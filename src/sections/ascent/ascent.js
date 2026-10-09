@@ -7,15 +7,16 @@
  *
  * Progressive enhancement: the static partial is a complete stacked timeline
  * with an elevation drawing. Flight mode is only switched on when motion is
- * allowed and WebGL is available.
+ * allowed and WebGL is available; should the scene fail or its context be lost
+ * later, the flight carries on over a static CSS rendition (`.is-still`).
  */
-import { gsap, ScrollTrigger, scrollToTarget } from '../../lib/motion.js'
+import { gsap, ScrollTrigger } from '../../lib/motion.js'
 import { SplitText } from 'gsap/SplitText'
 import { reducedMotion, hasWebGL, tier, dpr } from '../../lib/quality.js'
 import { createRenderLoop, observeVisibility } from '../../lib/visibility.js'
 import { emit } from '../../lib/bus.js'
 import { $, $$, clamp, formatNumber } from '../../lib/dom.js'
-import { BEATS, EVENTS, telemetry, formatClock, missionTime } from './profile.js'
+import { BEATS, EVENTS, telemetry, formatClock, missionTime, pitchAt, smooth } from './profile.js'
 
 gsap.registerPlugin(SplitText)
 
@@ -115,13 +116,13 @@ export function init() {
   // textures, a shader warm-up — so only its module is fetched now. The context is
   // created as the visitor approaches, and never ahead of the hero's first frame.
   let scene = null
-  let fellBack = false
+  let still = null
   const sceneModule = import('./scene.js')
   sceneModule.catch(() => {}) // reported when the scene is needed
   const stopApproach = whenApproaching(section, () => {
     sceneModule
       .then(({ createAscentScene }) => {
-        if (fellBack) return
+        if (still) return
         scene = createAscentScene(canvas, { tier, dpr })
         canvas.addEventListener('webglcontextlost', onContextLost, { once: true })
         resizeScene()
@@ -216,6 +217,8 @@ export function init() {
     if (scene) {
       scene.frame(p, time, dt)
       adapt(time, dt)
+    } else if (still) {
+      still.update(p, tm)
     }
   })
 
@@ -233,38 +236,25 @@ export function init() {
   }
 
   /**
-   * The scene failed to load, or its WebGL context was lost: switch to the static
-   * timeline. The pin goes too, so keep the visitor on the same part of the page.
+   * The scene failed to load, or its WebGL context was lost: swap the canvas for the
+   * static rendition (a CSS sky and the vehicle drawing), as the hero, fleet and join
+   * skies do. The flight itself carries on — pin, HUD, cards and cues — so the
+   * visitor stays exactly where they were.
    */
   function fallBackToStatic() {
-    if (fellBack) return
-    fellBack = true
+    if (still) return
     stopApproach()
-    loop.destroy()
     ro.disconnect()
     canvas.removeEventListener('webglcontextlost', onContextLost)
-
-    const y = window.scrollY
-    const { start, end } = pin
-    const flown = clamp((y - start) / Math.max(1, end - start))
-    pin.kill()
-    story.destroy()
     try {
       scene?.dispose()
     } catch {
       /* the context is already gone */
     }
     scene = null
-    section.classList.remove('is-flight')
-    section.classList.add('is-static')
-    ScrollTrigger.refresh()
-
-    if (y <= start) return
-    const top = section.getBoundingClientRect().top + window.scrollY
-    const removed = end - start + window.innerHeight - section.offsetHeight
-    // Mid-flight: the same share of the way through the timeline. Below it: the same content.
-    const next = y < end ? top + flown * Math.max(0, section.offsetHeight - window.innerHeight) : y - removed
-    scrollToTarget(Math.max(0, Math.round(next)), { immediate: true })
+    still = createStill(stage, canvas)
+    section.classList.add('is-still')
+    still.update(clamp(progress), telemetry(clamp(progress)))
   }
 }
 
@@ -314,6 +304,45 @@ function heroSettled() {
 }
 
 /* ---------------------------------------------------------------------------------- */
+
+/**
+ * Static rendition of the flight, for when WebGL is lost: the sky darkens with
+ * altitude, the ground drops away, Earth's limb rises to meet the sunrise, and
+ * the elevation drawing pitches over, sheds its first stage and burns — all
+ * driven by the same telemetry as the HUD, through a handful of CSS variables.
+ */
+function createStill(stage, canvas) {
+  const root = document.createElement('div')
+  root.className = 's-ascent__still'
+  root.setAttribute('aria-hidden', 'true')
+  root.innerHTML =
+    '<div class="s-ascent__still-stars"></div><div class="s-ascent__still-earth"></div>' +
+    '<div class="s-ascent__still-sun"></div><div class="s-ascent__still-ground"></div>'
+  canvas.after(root)
+
+  const last = new Map()
+  const set = (name, value) => {
+    const v = value.toFixed(3)
+    if (last.get(name) === v) return
+    last.set(name, v)
+    stage.style.setProperty(name, v)
+  }
+  let shed = null
+  return {
+    update(p, tm) {
+      set('--ascent-sky', tm.sky)
+      set('--ascent-climb', smooth(BEATS.liftoff, 0.16, p))
+      set('--ascent-limb', smooth(0.2, 0.86, p))
+      set('--ascent-sun', smooth(BEATS.orbit - 0.04, BEATS.orbit + 0.1, p))
+      set('--ascent-pitch', pitchAt(p))
+      set('--ascent-burn', clamp(tm.throttle / 100))
+      if (shed !== p >= BEATS.sep) {
+        shed = p >= BEATS.sep
+        stage.classList.toggle('is-shed', shed)
+      }
+    },
+  }
+}
 
 function createHud(section) {
   const root = $('.s-ascent__hud', section)

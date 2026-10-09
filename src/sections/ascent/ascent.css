@@ -316,6 +316,176 @@
   height: 100%;
 }
 
+/* ---- Static rendition (WebGL lost) ------------------------------------------
+   ascent.js swaps the canvas for a CSS sky and the elevation drawing; the HUD
+   and cards fly on. Driven by --ascent-sky / climb / limb / sun / pitch / burn. */
+.s-ascent__still {
+  display: none;
+}
+
+.s-ascent.is-still .s-ascent__canvas {
+  display: none;
+}
+
+.s-ascent.is-still .s-ascent__still {
+  display: block;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* space: what's left once the atmosphere thins out */
+  background: radial-gradient(120% 70% at 64% 100%, rgba(31, 107, 255, 0.12), transparent 70%), var(--c-void);
+}
+
+/* the lit atmosphere, thinning with altitude */
+.s-ascent.is-still .s-ascent__still::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(90% 55% at 64% 82%, rgba(111, 195, 255, 0.3), transparent 70%),
+    linear-gradient(to bottom, #030817 0%, #0a2153 38%, #17489f 70%, #2d6fd0 100%);
+  opacity: calc(1 - var(--ascent-sky, 0) * 1.08);
+}
+
+.s-ascent__still-stars {
+  position: absolute;
+  inset: 0;
+  opacity: calc(var(--ascent-sky, 0) * 1.7 - 0.7);
+  background-image:
+    radial-gradient(1.4px 1.4px at 12% 18%, #fff 50%, transparent 100%),
+    radial-gradient(1px 1px at 37% 62%, rgba(255, 255, 255, 0.7) 50%, transparent 100%),
+    radial-gradient(1px 1px at 58% 11%, rgba(199, 236, 255, 0.8) 50%, transparent 100%),
+    radial-gradient(1.6px 1.6px at 81% 44%, #fff 50%, transparent 100%),
+    radial-gradient(1px 1px at 69% 83%, rgba(255, 240, 220, 0.75) 50%, transparent 100%),
+    radial-gradient(1.2px 1.2px at 23% 77%, rgba(255, 255, 255, 0.75) 50%, transparent 100%),
+    radial-gradient(1px 1px at 91% 7%, rgba(255, 255, 255, 0.6) 50%, transparent 100%),
+    radial-gradient(1px 1px at 47% 36%, rgba(199, 236, 255, 0.6) 50%, transparent 100%);
+  background-size: 380px 340px;
+}
+
+/* Earth's limb rises from below as the vehicle climbs */
+.s-ascent__still-earth {
+  position: absolute;
+  left: 50%;
+  top: calc(100% - var(--ascent-limb, 0) * 24%);
+  width: 260vmax;
+  aspect-ratio: 1;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 0%, #12305c 0%, #06122a 10%, #010308 30%);
+  box-shadow:
+    0 -1px 0 rgba(170, 215, 255, 0.55),
+    0 -8px 30px rgba(60, 130, 255, 0.35),
+    0 -40px 120px rgba(31, 107, 255, 0.22);
+  opacity: var(--ascent-limb, 0);
+}
+
+/* sunrise over the limb at orbit */
+.s-ascent__still-sun {
+  position: absolute;
+  left: 76%;
+  top: calc(100% - var(--ascent-limb, 0) * 24%);
+  width: 70vmin;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  background: radial-gradient(circle, rgba(255, 240, 222, 0.95) 0, rgba(255, 178, 102, 0.5) 5%, rgba(255, 128, 64, 0.14) 20%, transparent 52%);
+  opacity: var(--ascent-sun, 0);
+}
+
+/* the pad: the ground drops away after liftoff */
+.s-ascent__still-ground {
+  position: absolute;
+  inset: 78.5% 0 0;
+  translate: 0 calc(var(--ascent-climb, 0) * 60vh);
+  background: linear-gradient(to bottom, #0a0e16, #020305 45%, #000);
+  box-shadow: 0 -24px 90px rgba(63, 140, 255, 0.28);
+  opacity: calc(1 - var(--ascent-climb, 0));
+}
+
+/* The elevation drawing becomes the vehicle: its axis (32.76% across the
+   drawing) stands where the scene's rocket does, and pitches over with it. */
+.s-ascent.is-flight.is-still .s-ascent__vehicle {
+  left: 64%;
+  top: 50%;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  translate: -32.76% -50%;
+  rotate: calc(var(--ascent-pitch, 0) * 1rad);
+  transform-origin: 32.76% 50%;
+  transition: translate 1.2s var(--ease-out);
+}
+
+.s-ascent.is-still .s-ascent__svg {
+  display: block;
+  height: 62vh;
+  height: 62svh;
+  clip-path: inset(-10% -50% -10% -50%);
+  transition: clip-path 1.2s var(--ease-out);
+}
+
+/* the drawing's halo, ruler and labels belong to the static timeline */
+.s-ascent.is-still .s-ascent__svg > ellipse,
+.s-ascent.is-still .s-ascent__svg-ruler,
+.s-ascent.is-still .s-ascent__svg-callouts {
+  display: none;
+}
+
+.s-ascent.is-still .s-ascent__caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+/* exhaust: first stage at the engine skirt, then the upper stage's vacuum plume */
+.s-ascent.is-still .s-ascent__vehicle::after {
+  content: '';
+  position: absolute;
+  left: 32.76%;
+  top: 96%;
+  width: 15%;
+  height: 34%;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(50% 100% at 50% 0%, #fff 0, #ffe1b0 14%, rgba(255, 140, 64, 0.7) 36%, rgba(255, 92, 32, 0) 72%);
+  filter: blur(3px);
+  opacity: var(--ascent-burn, 0);
+}
+
+/* stage separation: the first stage and interstage fall away */
+.s-ascent.is-still .is-shed .s-ascent__svg {
+  clip-path: inset(-10% -50% 56.4% -50%);
+}
+
+.s-ascent.is-flight.is-still .is-shed .s-ascent__vehicle {
+  translate: -32.76% -30%;
+}
+
+.s-ascent.is-still .is-shed .s-ascent__vehicle::after {
+  top: 43.4%;
+  width: 22%;
+  height: 26%;
+  background: radial-gradient(50% 100% at 50% 0%, #fff 0, rgba(214, 232, 255, 0.75) 16%, rgba(111, 195, 255, 0.28) 44%, rgba(111, 195, 255, 0) 72%);
+}
+
+/* tall screens: the copy sits on top, the vehicle stands centred below it */
+@media (max-aspect-ratio: 9/10) {
+  .s-ascent.is-flight.is-still .s-ascent__vehicle {
+    left: 50%;
+    top: 62%;
+  }
+
+  .s-ascent.is-still .s-ascent__svg {
+    height: 40vh;
+    height: 40svh;
+  }
+}
+
 /* Scrims keep copy and HUD legible over bright sky without dimming the scene. */
 .s-ascent.is-flight .s-ascent__shade {
   display: block;
@@ -1174,8 +1344,8 @@
   }
 }
 
-/* Smaller phones held sideways (≤ 720 × ≤ 480) keep the phone layout; only the
-   intro tightens so it clears the bottom bar. */
+/* Smaller phones held sideways (≤ 720 × ≤ 480) keep the phone layout; the intro
+   tightens so it clears the bottom bar, and the headlines shrink to the height. */
 @media (max-width: 720px) and (max-height: 480px) {
   .s-ascent.is-flight .s-ascent__intro {
     top: calc(var(--nav-h) + 40px);
@@ -1197,5 +1367,32 @@
 
   .s-ascent .s-ascent__cue-track {
     height: 22px;
+  }
+
+  .s-ascent.is-flight .s-ascent__headline {
+    margin-top: 0.3em;
+    font-size: 9vh;
+    font-size: 9svh;
+  }
+
+  /* the phone column runs into the orbit framing: keep the finale clear of the payload */
+  .s-ascent.is-flight .s-ascent__headline--long {
+    font-size: min(7vh, 100cqi / 12.6);
+    font-size: min(7svh, 100cqi / 12.6);
+  }
+}
+
+/* Any short screen: the bottom bar's scrim falls off within a few lines, so it
+   never veils the copy above it (the copy carries its own halo). */
+@media (max-height: 480px) {
+  .s-ascent .s-ascent__bar::before {
+    height: calc(100% + var(--ascent-hud-gap) + 64px);
+    background: linear-gradient(
+      to top,
+      rgba(0, 2, 8, 0.86),
+      rgba(0, 2, 8, 0.7) calc(100% - 64px),
+      rgba(0, 2, 8, 0.32) calc(100% - 30px),
+      rgba(0, 2, 8, 0)
+    );
   }
 }

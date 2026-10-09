@@ -10,7 +10,10 @@
   --tty-faint: rgba(208, 224, 244, 0.56);
   --tty-line: rgba(140, 190, 255, 0.14);
   --tty-glow: rgba(111, 195, 255, 0.26);
-  --tty-fs: 0.875rem;
+  /* Console type size, as a fraction of 1rem. The touch input is laid out at
+     1rem (16px: no iOS focus zoom) and scaled down by this same ratio. */
+  --tty-k: 0.875;
+  --tty-fs: calc(var(--tty-k) * 1rem);
   --tty-lh: 1.72;
   --tty-pad-x: clamp(18px, 2.6vw, 38px);
   --tty-pad-y: clamp(18px, 2.3vw, 30px);
@@ -108,6 +111,7 @@
 }
 
 button.s-terminal__kbd {
+  position: relative;
   cursor: pointer;
   transition: background 0.35s var(--ease-out), color 0.35s var(--ease-out), box-shadow 0.45s var(--ease-out);
 }
@@ -117,6 +121,15 @@ button.s-terminal__kbd:focus-visible {
   background: var(--c-atmo);
   color: var(--c-void);
   box-shadow: 0 0 30px -2px rgba(111, 195, 255, 0.7);
+}
+
+/* Touch: an invisible ≥40px-tall hit area around the inline key */
+@media (pointer: coarse) {
+  button.s-terminal__kbd::before {
+    content: '';
+    position: absolute;
+    inset: -9px -6px;
+  }
 }
 
 .s-terminal__aside {
@@ -350,9 +363,16 @@ button.s-terminal__kbd:focus-visible {
   white-space: nowrap;
 }
 
-.s-terminal__sim {
-  padding: 3px 7px 2px;
+/* "Simulated" disclosure tag — the site-wide spec, identical in every section */
+.s-terminal .s-terminal__sim {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  line-height: 1;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--c-text-dim);
   border: 1px solid var(--c-line-strong);
+  padding: 3px 6px 2px;
   border-radius: var(--radius);
 }
 
@@ -770,6 +790,7 @@ html.no-js .s-terminal__pad {
   border-radius: var(--radius);
   background: rgba(111, 195, 255, 0.11);
   color: var(--c-atmo);
+  white-space: nowrap; /* `contact --copy` never splits at its hyphens */
 }
 
 .s-terminal .t-link {
@@ -1022,6 +1043,10 @@ html.no-js .s-terminal__pad {
   white-space: nowrap;
 }
 
+.s-terminal .t-sim {
+  color: var(--tty-faint);
+}
+
 .s-terminal .t-boot__cta {
   margin-top: 0.15em;
 }
@@ -1184,7 +1209,8 @@ html.no-js .s-terminal .r-scope {
   width: 100%;
   height: calc(var(--tty-lh) * 1em);
   margin: 0;
-  padding: 0;
+  /* Room for the block caret when a long line scrolls to its end */
+  padding: 0 1ch 0 0;
   border: 0;
   border-radius: 0;
   outline: none;
@@ -1278,8 +1304,27 @@ html.no-js .s-terminal .r-scope {
   transition: opacity 0.3s, color 0.3s, border-color 0.3s, background 0.3s;
 }
 
+/* Touch. iOS zooms the page when an input under 16px takes focus (and stays
+   zoomed after blur). The field is laid out at 1rem and scaled back down by
+   --tty-k, so the typed text, mirror and caret keep the console's metrics;
+   the overlay compensates for the input's scroll offset (terminal.js).
+   Enter grows to a thumb-sized target. */
 @media (pointer: coarse) {
-  .s-terminal__enter {
+  .s-terminal .s-terminal__field {
+    height: calc(var(--tty-lh) * 1em);
+    overflow: clip;
+  }
+
+  .s-terminal .s-terminal__input {
+    width: calc(100% / var(--tty-k));
+    font-size: 1rem;
+    transform: scale(var(--tty-k));
+    transform-origin: 0 0;
+  }
+
+  .s-terminal .s-terminal__enter {
+    width: 44px;
+    height: 40px;
     opacity: 1;
   }
 }
@@ -1313,10 +1358,11 @@ html.no-js .s-terminal .r-scope {
   gap: 8px;
   margin: 0 0 10px;
   color: var(--tty-faint);
+  text-wrap: balance;
 }
 
 .s-terminal .r-sim {
-  color: var(--tty-faint);
+  align-self: center;
 }
 
 .s-terminal .r-status {
@@ -1689,7 +1735,7 @@ html.no-js .s-terminal .r-scope {
 
 @media (max-width: 720px) {
   .s-terminal {
-    --tty-fs: 0.75rem;
+    --tty-k: 0.75;
     --tty-lh: 1.7;
     --tty-h: clamp(440px, 66svh, 560px);
     --tty-pad-x: 16px;
@@ -1738,20 +1784,27 @@ html.no-js .s-terminal .r-scope {
     display: none;
   }
 
+  /* Console chrome stays ≥ 11px on phones */
   .s-terminal__bar-title {
-    font-size: 0.64rem;
-    letter-spacing: 0.18em;
+    font-size: 0.6875rem;
+    letter-spacing: 0.12em;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   .s-terminal .s-terminal__bar-meta {
-    font-size: 0.6rem;
+    font-size: 0.6875rem;
   }
 
   .s-terminal .s-terminal__status {
     padding: 0 14px;
-    font-size: 0.58rem;
+    font-size: 0.6875rem;
+  }
+
+  .s-terminal__touchhint {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .s-terminal .t-banner__caption {
@@ -1850,6 +1903,29 @@ html.no-js .s-terminal .r-scope {
   .s-terminal__chip--ignite {
     justify-content: center;
     min-height: 52px;
+  }
+}
+
+@media (max-width: 420px) {
+  /* Room for the mode and the touch hint at a legible size */
+  .s-terminal__ln {
+    display: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .s-terminal__bar {
+    gap: 8px;
+    padding: 0 12px;
+  }
+
+  .s-terminal__bar-title {
+    font-stretch: 110%;
+  }
+
+  /* "Launch site (sim)" and its coordinates share one line */
+  .s-terminal .t-kv dt::after {
+    min-width: 0;
   }
 }
 
