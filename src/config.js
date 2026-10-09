@@ -35,7 +35,7 @@ export const COORDINATES = { lat: 31.4159, lon: -42.7183, label: '31.4159° N  4
 export const WAITLIST_ENDPOINT = ''
 
 /** Public contact address (used for mailto links). */
-export const CONTACT_EMAIL = 'hello@sxsi.ai'
+export const CONTACT_EMAIL = 'info@sxsi.ai'
 
 /** Social profiles — leave a value empty to hide that link. */
 export const SOCIAL = {
