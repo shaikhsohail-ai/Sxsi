@@ -1,0 +1,42 @@
+# SXSI — web server config for Apache / LiteSpeed hosting (e.g. Namecheap cPanel).
+# Ignored by GitHub Pages, Vercel and Netlify.
+
+# ---- HTTPS + one canonical address: https://www.sxsi.ai ---------------------
+# Turn on the SSL certificate in cPanel BEFORE uploading this file, otherwise
+# visitors are redirected to https:// and see a certificate warning.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Leave certificate (AutoSSL / Let's Encrypt) validation requests alone.
+  RewriteCond %{REQUEST_URI} !^/\.well-known/
+  RewriteCond %{HTTPS} off [OR]
+  RewriteCond %{HTTP_HOST} !^www\. [NC]
+  RewriteRule ^ https://www.sxsi.ai%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# ---- Correct file types -----------------------------------------------------
+<IfModule mod_mime.c>
+  AddType application/javascript .js .mjs
+  AddType font/woff2 .woff2
+  AddType image/svg+xml .svg
+  AddType application/manifest+json .webmanifest
+</IfModule>
+
+# ---- Compression ------------------------------------------------------------
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/plain application/javascript application/json application/manifest+json application/xml image/svg+xml
+</IfModule>
+
+# ---- Caching ----------------------------------------------------------------
+# Built JS/CSS/fonts have a content hash in their name (e.g. index-CKm-ytP-.js),
+# so they can be cached for a year. index.html is always revalidated, so a new
+# upload shows up straight away.
+<IfModule mod_headers.c>
+  <FilesMatch "-[A-Za-z0-9_-]{8}\.(js|css|woff2)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

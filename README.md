@@ -65,6 +65,15 @@ The build is a static folder (`dist/`), so it runs on any static host.
 4. Recommended: verify the domain for your GitHub account (profile **Settings → Pages → Add a domain**), which gives you a `TXT` record to add in Namecheap. It stops anyone else's repo from claiming `sxsi.ai`.
 5. When **Settings → Pages** shows the DNS check passing and the certificate issued (minutes to a few hours), tick **Enforce HTTPS**.
 
+**Namecheap shared hosting (cPanel), manual upload:**
+
+1. Point the domain at the hosting: Namecheap → *Domain List → sxsi.ai → Nameservers* → **Namecheap Web Hosting DNS**.
+2. In cPanel, activate the SSL certificate for `sxsi.ai` and `www.sxsi.ai` **before** uploading. `public/.htaccess` redirects everything to `https://www.sxsi.ai`, so without a certificate visitors would see a warning.
+3. `npm run build`, zip the *contents* of `dist/` (not the folder itself, and include the hidden `.htaccess`), then in cPanel → **File Manager** → `public_html` (or the addon domain's folder): **Upload** the zip, **Extract** it there, and delete the zip. `index.html` must sit directly in that folder.
+4. To update later, repeat step 3. Old files under `assets/` can be deleted first; their names change with every build.
+
+`public/.htaccess` (Apache / LiteSpeed only) forces HTTPS and the `www` host, gzips text assets, caches hashed files for a year and always revalidates `index.html`.
+
 **Vercel / Netlify / Cloudflare Pages:** import the repo, build command `npm run build`, output directory `dist`, then add `www.sxsi.ai` as a custom domain.
 
 ## Tooling
