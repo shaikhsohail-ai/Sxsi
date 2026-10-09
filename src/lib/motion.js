@@ -144,7 +144,11 @@ function initAnchorLinks() {
     // Remember where we left from, so Back returns there (scroll restoration is manual).
     rememberInHistory()
     scrollToTarget(anchorY(el))
-    history.pushState(null, '', `#${id}`)
+    try {
+      history.pushState(null, '', `#${id}`)
+    } catch {
+      /* sandboxed frame: the scroll still happens, the URL just doesn't change */
+    }
     // Move focus for keyboard / screen-reader users without a second jump.
     if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1')
     el.focus({ preventScroll: true })
