@@ -49,12 +49,21 @@ The build is a static folder (`dist/`), so it runs on any static host.
 
 **GitHub Pages (included):** `.github/workflows/deploy.yml` builds and publishes on every push to `main`.
 
-1. Repo **Settings → Pages → Source:** `GitHub Actions`.
-2. `public/CNAME` already contains `www.sxsi.ai`.
-3. At your DNS provider:
-   - `www` → `CNAME` → `<your-github-username>.github.io`
-   - apex `sxsi.ai` → `A` records `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153` (GitHub then redirects to `www`).
-4. Back in Settings → Pages, tick **Enforce HTTPS** once the certificate is issued.
+1. Repo **Settings → Pages → Build and deployment → Source:** `GitHub Actions`, then re-run the latest "Deploy to GitHub Pages" workflow (Actions tab → the run → **Re-run all jobs**).
+2. **Settings → Pages → Custom domain:** enter `www.sxsi.ai` and save. Actions-based deploys ignore `public/CNAME` (it's kept for other hosts), so this field is what sets the domain.
+3. DNS — at **Namecheap**: *Domain List → sxsi.ai → Manage → Advanced DNS → Host Records*. Delete the default parking records (the `CNAME www → parkingpage.namecheap.com` and any `URL Redirect` on `@`), then add:
+
+   | Type | Host | Value | TTL |
+   | --- | --- | --- | --- |
+   | A Record | `@` | `185.199.108.153` | Automatic |
+   | A Record | `@` | `185.199.109.153` | Automatic |
+   | A Record | `@` | `185.199.110.153` | Automatic |
+   | A Record | `@` | `185.199.111.153` | Automatic |
+   | CNAME Record | `www` | `shaikhsohail-ai.github.io.` | Automatic |
+
+   Optional IPv6: four `AAAA Record`s on `@` → `2606:50c0:8000::153`, `2606:50c0:8001::153`, `2606:50c0:8002::153`, `2606:50c0:8003::153`. The apex `sxsi.ai` then redirects to `www.sxsi.ai`. Leave any `MX` / mail records alone.
+4. Recommended: verify the domain for your GitHub account (profile **Settings → Pages → Add a domain**), which gives you a `TXT` record to add in Namecheap. It stops anyone else's repo from claiming `sxsi.ai`.
+5. When **Settings → Pages** shows the DNS check passing and the certificate issued (minutes to a few hours), tick **Enforce HTTPS**.
 
 **Vercel / Netlify / Cloudflare Pages:** import the repo, build command `npm run build`, output directory `dist`, then add `www.sxsi.ai` as a custom domain.
 
