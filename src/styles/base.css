@@ -13,6 +13,12 @@ html {
   background: var(--c-void);
   color-scheme: dark;
   scroll-padding-top: var(--nav-h);
+  overflow-x: clip; /* clip (not hidden) keeps position: sticky working */
+}
+
+/* Set by lockScroll() — needed when Lenis is off (reduced motion). */
+html.is-scroll-locked {
+  overflow: hidden;
 }
 
 body {

@@ -38,11 +38,11 @@ const browser = await chromium.launch({
   // Hide the live page UI, keep the hero's backdrop, lay our own type on top.
   await page.addStyleTag({
     content: `
-      .s-nav, .skip-link, #hero > :not(canvas):not([class*="canvas"]):not([class*="bg"]):not([class*="scene"]):not([class*="fallback"]) { visibility: hidden !important; }
+      .s-nav, .skip-link, .s-hero__frame > :not(.s-hero__stage), .s-hero__reticle { visibility: hidden !important; }
       #og-card { position: fixed; inset: 0; z-index: 99999; pointer-events: none;
         display: flex; flex-direction: column; justify-content: space-between; padding: 64px 72px;
         color: #f4f6fb; font-family: var(--font-display); text-transform: uppercase;
-        background: radial-gradient(120% 90% at 20% 20%, rgba(0,0,0,.55), transparent 60%); }
+        background: linear-gradient(180deg, rgba(0,0,0,.55), transparent 55%); }
       #og-card .og-logo svg { width: 190px; height: auto; color: #f4f6fb; fill: currentColor; }
       #og-card h1 { margin: 0; font-size: 88px; line-height: .9; font-stretch: 118%; font-weight: 700; letter-spacing: .01em; max-width: 900px; }
       #og-card .og-meta { display: flex; justify-content: space-between; font-family: var(--font-mono);
@@ -67,15 +67,15 @@ const browser = await chromium.launch({
 
 // ---- App icons ----------------------------------------------------------------
 const icons = [
-  { file: 'apple-touch-icon.png', size: 180, scale: 0.62 },
-  { file: 'icon-192.png', size: 192, scale: 0.62 },
-  { file: 'icon-512.png', size: 512, scale: 0.56 },
+  { file: 'apple-touch-icon.png', size: 180, scale: 1 },
+  { file: 'icon-192.png', size: 192, scale: 1 },
+  { file: 'icon-512.png', size: 512, scale: 1 },
 ]
 for (const { file, size, scale } of icons) {
   const page = await browser.newPage({ viewport: { width: size, height: size }, deviceScaleFactor: 1 })
   const dataUri = `data:image/svg+xml;base64,${Buffer.from(faviconSvg).toString('base64')}`
   await page.setContent(`<html style="color-scheme:dark"><body style="margin:0;width:${size}px;height:${size}px;display:grid;place-items:center;
-    background:radial-gradient(circle at 50% 120%, #10284a 0%, #000 62%)">
+    background:#000">
     <img src="${dataUri}" style="width:${Math.round(size * scale)}px;height:${Math.round(size * scale)}px"></body></html>`)
   await page.waitForTimeout(200)
   await page.screenshot({ path: path.join(publicDir, file) })

@@ -1,5 +1,300 @@
-<section id="join" class="s-join section" aria-label="Join the Mission">
-  <div class="container">
-    <p class="eyebrow">Join the Mission</p>
+<section id="join" class="s-join s-join--static" aria-labelledby="join-title" data-join>
+  <!-- Backdrop: orbital sunrise. WebGL canvas over a static CSS rendition. -->
+  <div class="s-join__sky" aria-hidden="true">
+    <div class="s-join__sky-frame">
+      <div class="s-join__fallback">
+        <div class="s-join__fb-stars"></div>
+        <div class="s-join__fb-haze"></div>
+        <div class="s-join__fb-planet"></div>
+        <div class="s-join__fb-sun"></div>
+      </div>
+      <canvas class="s-join__canvas" data-join-canvas></canvas>
+    </div>
   </div>
+
+  <div class="s-join__board container" id="join-board">
+    <!-- Headline -->
+    <header class="s-join__head">
+      <div class="s-join__head-bar" data-join-reveal>
+        <h2 id="join-title" class="s-join__title eyebrow">Join the mission</h2>
+        <p class="s-join__head-meta hud">
+          <span class="status">Passes issuing</span>
+          <span class="s-join__head-sep" aria-hidden="true"></span>
+          <span>Mission <span data-join-c="missionNumber">002</span> · <span data-join-c="missionName">Ignition</span></span>
+        </p>
+      </div>
+      <p class="s-join__headline h1">
+        <span class="s-join__line"><span class="s-join__line-in" data-join-line>Board the</span></span>
+        <span class="s-join__line"><span class="s-join__line-in" data-join-line>next launch.</span></span>
+      </p>
+    </header>
+
+    <!-- The pass: a live preview that becomes yours on submit -->
+    <div class="s-join__pass-col">
+      <div class="s-join__stage" data-join-stage>
+        <div class="s-join__float" data-join-float>
+          <div class="s-join__tilt" data-join-tilt>
+            <div class="s-join__shadow" aria-hidden="true"></div>
+            <article class="s-join__pass is-draft" data-join-pass tabindex="-1" aria-label="Crew boarding pass, preview">
+              <svg class="s-join__rosette" viewBox="-1 -1 2 2" aria-hidden="true" focusable="false">
+                <path data-join-rosette d="" />
+              </svg>
+
+              <div class="s-join__main">
+                <div class="s-join__top">
+                  <span class="s-join__brand">
+                    <svg class="s-join__wordmark" viewBox="0 0 211.2 40" fill="currentColor" role="img" aria-label="SXSI" focusable="false">
+                      <path d="M60,0H11.5A11.5,11.5 0 0 0 0,11.5V11.6A11.5,11.5 0 0 0 11.5,23.1H48.5A5.3,5.3 0 0 1 53.8,28.4V28.5A5.3,5.3 0 0 1 48.5,33.8H6.79L0,40H48.5A11.5,11.5 0 0 0 60,28.5V28.4A11.5,11.5 0 0 0 48.5,16.9H11.5A5.3,5.3 0 0 1 6.2,11.6V11.5A5.3,5.3 0 0 1 11.5,6.2H53.21L60,0ZM69.5,0L79.7,0L123.5,40L113.3,40ZM113.3,0L123.5,0L102.9,18.81L97.8,14.15ZM90.1,21.19L95.2,25.84L79.7,40L69.5,40ZM193,0H144.5A11.5,11.5 0 0 0 133,11.5V11.6A11.5,11.5 0 0 0 144.5,23.1H181.5A5.3,5.3 0 0 1 186.8,28.4V28.5A5.3,5.3 0 0 1 181.5,33.8H139.79L133,40H181.5A11.5,11.5 0 0 0 193,28.5V28.4A11.5,11.5 0 0 0 181.5,16.9H144.5A5.3,5.3 0 0 1 139.2,11.6V11.5A5.3,5.3 0 0 1 144.5,6.2H186.21L193,0ZM205,0H211.2V40H205Z" />
+                    </svg>
+                  </span>
+                  <span class="s-join__kind">Crew boarding pass</span>
+                  <span class="s-join__mission">
+                    <span class="s-join__label">Mission</span>
+                    <span class="s-join__mission-val"><span data-join-f="missionNumber">002</span> · <span data-join-f="missionName">Ignition</span></span>
+                  </span>
+                </div>
+
+                <div class="s-join__route">
+                  <p class="s-join__port">
+                    <span class="s-join__label">Origin</span>
+                    <span class="s-join__code">Earth</span>
+                    <span class="s-join__port-detail" data-join-f="originDetail">LC-01 · 28.49° N</span>
+                  </p>
+                  <svg class="s-join__arc" viewBox="0 0 240 64" fill="none" aria-hidden="true" focusable="false">
+                    <path class="s-join__arc-ground" d="M2 58H238" />
+                    <path class="s-join__arc-plan" d="M10 58C10 30 70 12 232 10" pathLength="1" />
+                    <path class="s-join__arc-flown" d="M10 58C10 30 70 12 232 10" pathLength="1" data-join-flown />
+                    <rect class="s-join__arc-pad" x="7" y="55" width="6" height="6" />
+                    <circle class="s-join__arc-orbit" cx="232" cy="10" r="5.5" />
+                    <circle class="s-join__arc-node" cx="232" cy="10" r="2.2" />
+                  </svg>
+                  <p class="s-join__port s-join__port--dest">
+                    <span class="s-join__label">Destination</span>
+                    <span class="s-join__code">Orbit</span>
+                    <span class="s-join__port-detail" data-join-f="destinationDetail">LEO · 400 KM</span>
+                  </p>
+                </div>
+
+                <p class="s-join__passenger">
+                  <span class="s-join__label">Passenger</span>
+                  <span class="s-join__name" data-join-name>Your name here</span>
+                </p>
+
+                <dl class="s-join__fields">
+                  <div class="s-join__fld"><dt class="s-join__label">Flight</dt><dd data-join-f="flight">SX 002</dd></div>
+                  <div class="s-join__fld"><dt class="s-join__label">Seat</dt><dd data-join-f="seat">—</dd></div>
+                  <div class="s-join__fld"><dt class="s-join__label">Gate</dt><dd data-join-f="gate">LC-01</dd></div>
+                  <div class="s-join__fld s-join__fld--wide">
+                    <dt class="s-join__label">Boarding</dt>
+                    <dd><span data-join-f="boardingDate">01 JAN 2027</span> <span class="s-join__dim" data-join-f="boardingTime">00:00 UTC</span></dd>
+                  </div>
+                  <div class="s-join__fld"><dt class="s-join__label">Class</dt><dd>Crew</dd></div>
+                </dl>
+
+                <p class="s-join__fine">
+                  <span>Crew ID <span class="s-join__crew-id" data-join-f="crewId">SX-····-····</span></span>
+                  <span class="s-join__fine-note">Commemorative · Not valid for travel</span>
+                </p>
+              </div>
+
+              <div class="s-join__stub" aria-hidden="true">
+                <div class="s-join__stub-head">
+                  <svg class="s-join__wordmark s-join__wordmark--stub" viewBox="0 0 211.2 40" fill="currentColor" aria-hidden="true" focusable="false">
+                    <path d="M60,0H11.5A11.5,11.5 0 0 0 0,11.5V11.6A11.5,11.5 0 0 0 11.5,23.1H48.5A5.3,5.3 0 0 1 53.8,28.4V28.5A5.3,5.3 0 0 1 48.5,33.8H6.79L0,40H48.5A11.5,11.5 0 0 0 60,28.5V28.4A11.5,11.5 0 0 0 48.5,16.9H11.5A5.3,5.3 0 0 1 6.2,11.6V11.5A5.3,5.3 0 0 1 11.5,6.2H53.21L60,0ZM69.5,0L79.7,0L123.5,40L113.3,40ZM113.3,0L123.5,0L102.9,18.81L97.8,14.15ZM90.1,21.19L95.2,25.84L79.7,40L69.5,40ZM193,0H144.5A11.5,11.5 0 0 0 133,11.5V11.6A11.5,11.5 0 0 0 144.5,23.1H181.5A5.3,5.3 0 0 1 186.8,28.4V28.5A5.3,5.3 0 0 1 181.5,33.8H139.79L133,40H181.5A11.5,11.5 0 0 0 193,28.5V28.4A11.5,11.5 0 0 0 181.5,16.9H144.5A5.3,5.3 0 0 1 139.2,11.6V11.5A5.3,5.3 0 0 1 144.5,6.2H186.21L193,0ZM205,0H211.2V40H205Z" />
+                  </svg>
+                  <span class="s-join__chip" data-join-chip>Preview</span>
+                </div>
+                <div class="s-join__stub-seat">
+                  <span class="s-join__label">Seat</span>
+                  <span class="s-join__stub-big" data-join-f="seat">—</span>
+                </div>
+                <div class="s-join__stub-row">
+                  <span><span class="s-join__label">Gate</span><span data-join-f="gate">LC-01</span></span>
+                  <span><span class="s-join__label">Group</span><span data-join-f="group">—</span></span>
+                </div>
+                <svg class="s-join__code-svg" viewBox="0 0 19 19" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
+                  <path data-join-code d="" />
+                </svg>
+                <span class="s-join__stub-id" data-join-f="crewId">SX-····-····</span>
+              </div>
+
+              <!-- Foil, glare and print effects (decorative) -->
+              <div class="s-join__holo" aria-hidden="true"><div class="s-join__sheen" data-join-sheen></div></div>
+              <div class="s-join__glare" aria-hidden="true" data-join-glare></div>
+              <div class="s-join__scan" aria-hidden="true" data-join-scan></div>
+              <div class="s-join__stamp" aria-hidden="true" data-join-stamp>
+                <span class="s-join__stamp-top">Cleared for boarding</span>
+                <span class="s-join__stamp-mid">Crew</span>
+                <span class="s-join__stamp-bot">Mission <span data-join-f="missionNumber">002</span></span>
+              </div>
+              <span class="s-join__notch s-join__notch--a" aria-hidden="true"></span>
+              <span class="s-join__notch s-join__notch--b" aria-hidden="true"></span>
+            </article>
+          </div>
+        </div>
+      </div>
+
+      <p class="s-join__hint hud" data-join-hint>
+        <span class="s-join__hint-dot" aria-hidden="true"></span>
+        Preview · Your callsign prints here
+      </p>
+
+      <div class="s-join__actions" data-join-actions hidden>
+        <button type="button" class="btn btn--solid btn--sm s-join__act" data-join-download>
+          <span data-join-download-label>Download pass</span>
+          <svg class="btn__arrow s-join__act-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+            <path d="M12 4v13M6 11l6 6 6-6M5 20h14" stroke="currentColor" stroke-width="1.6" />
+          </svg>
+        </button>
+        <a
+          class="btn btn--sm s-join__act"
+          data-join-x
+          href="https://x.com/intent/post?text=I%20just%20boarded%20SXSI%20%E2%80%94%20Super%20Intelligence.%20Launched.%20%F0%9F%9A%80%20For%20the%20sky.&amp;url=https%3A%2F%2Fwww.sxsi.ai%2F"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span>Share on X<span class="sr-only"> (opens in a new tab)</span></span>
+          <svg class="btn__arrow s-join__act-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+            <path d="M7 17 17 7M9 7h8v8" stroke="currentColor" stroke-width="1.6" />
+          </svg>
+        </a>
+        <button type="button" class="btn btn--sm s-join__act" data-join-copy>
+          <span data-join-copy-label>Copy link</span>
+        </button>
+        <button type="button" class="btn btn--sm s-join__act" data-join-share hidden>
+          <span>Share pass</span>
+        </button>
+      </div>
+      <p class="s-join__copy-fallback" data-join-copy-fallback hidden>
+        <label class="s-join__label" for="join-copy-url">Copy this link</label>
+        <input id="join-copy-url" class="s-join__copy-input" type="text" readonly value="https://www.sxsi.ai/" />
+      </p>
+    </div>
+
+    <!-- Crew registration -->
+    <div class="s-join__intake">
+      <p class="s-join__lead lead" data-join-reveal data-join-lead>
+        Every mission begins with a crew. Give the flight computer your callsign and it will print your
+        boarding pass for Mission 002. Yours to keep, download and share.
+      </p>
+
+      <form class="s-join__form" id="join-form" data-join-form novalidate aria-describedby="join-note" data-join-reveal>
+        <div class="s-join__form-head hud" aria-hidden="true">
+          <span>01 — Crew registration</span>
+          <span>Form SX-<span data-join-c="missionNumber">002</span></span>
+        </div>
+
+        <div class="s-join__field" data-join-field="name">
+          <div class="s-join__field-top">
+            <label class="s-join__field-label" for="join-name">Callsign / Name</label>
+            <span class="s-join__count hud" aria-hidden="true"><span data-join-count>00</span>/28</span>
+          </div>
+          <div class="s-join__control">
+            <input
+              class="s-join__input"
+              id="join-name"
+              name="name"
+              type="text"
+              required
+              maxlength="28"
+              autocomplete="nickname"
+              autocapitalize="characters"
+              spellcheck="false"
+              enterkeyhint="go"
+              placeholder="e.g. Orbiter-7"
+              aria-describedby="join-name-hint"
+            />
+          </div>
+          <p class="s-join__help" id="join-name-hint">Printed on your pass, exactly as you type it. Required.</p>
+          <p class="s-join__error" id="join-name-error" data-join-error="name" hidden></p>
+        </div>
+
+        <div class="s-join__field" data-join-field="email" hidden>
+          <div class="s-join__field-top">
+            <label class="s-join__field-label" for="join-email">Email <span class="s-join__opt">· Optional</span></label>
+          </div>
+          <div class="s-join__control">
+            <input
+              class="s-join__input s-join__input--email"
+              id="join-email"
+              name="email"
+              type="email"
+              autocomplete="email"
+              inputmode="email"
+              spellcheck="false"
+              placeholder="you@example.com"
+              aria-describedby="join-email-hint"
+              disabled
+            />
+          </div>
+          <p class="s-join__help" id="join-email-hint">Add it to join the waitlist. We’ll only write when there’s a launch to report.</p>
+          <p class="s-join__error" id="join-email-error" data-join-error="email" hidden></p>
+        </div>
+
+        <div class="s-join__submit-row">
+          <button class="btn btn--solid s-join__submit" type="submit" data-join-submit>
+            <span data-join-submit-label>Issue boarding pass</span>
+            <svg class="btn__arrow s-join__submit-go" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+              <path d="M4 12h15M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" />
+            </svg>
+            <svg class="btn__arrow s-join__submit-done" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+              <path d="M4.5 12.5l5 5 10-11" stroke="currentColor" stroke-width="1.8" />
+            </svg>
+          </button>
+          <a class="s-join__contact" href="mailto:hello@sxsi.ai?subject=Hello%20from%20sxsi.ai" data-join-contact>
+            <span>Contact mission control</span>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+              <path d="M7 17 17 7M9 7h8v8" stroke="currentColor" stroke-width="1.6" />
+            </svg>
+          </a>
+        </div>
+
+        <p class="s-join__note" id="join-note" data-join-note>
+          A commemorative pass, printed right here in your browser. Nothing is sent or stored. Mission 002 is a planned
+          milestone on our roadmap, not a scheduled flight.
+        </p>
+        <p class="s-join__waitlist hud" data-join-waitlist hidden></p>
+        <p class="s-join__nojs">
+          Pass printing runs in your browser and needs JavaScript. You can still reach mission control at
+          <a href="mailto:hello@sxsi.ai">hello@sxsi.ai</a>.
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Finale -->
+  <div class="s-join__finale" data-join-finale>
+    <!-- Crossing into space: the conventional boundary, 100 km up -->
+    <div class="s-join__karman container" aria-hidden="true" data-join-karman>
+      <span class="s-join__karman-label">Alt 100 km</span>
+      <span class="s-join__karman-rule" data-join-karman-rule></span>
+      <span class="s-join__karman-label s-join__karman-label--end">Kármán line<span class="s-join__karman-more"> · Space begins</span></span>
+    </div>
+    <div class="s-join__finale-inner container">
+      <p class="s-join__sky-title" data-join-sky-title>
+        <span class="s-join__word"><span class="s-join__word-in" data-join-word>For</span></span>
+        <span class="s-join__word"><span class="s-join__word-in" data-join-word>the</span></span>
+        <span class="s-join__word"><span class="s-join__word-in" data-join-word>sky.</span></span>
+      </p>
+      <div class="s-join__finale-hud" data-join-finale-hud>
+        <p class="hud s-join__finale-item">
+          <span class="s-join__finale-key">Next window</span>
+          <span class="hud-value"><span data-join-c="boardingDate">01 JAN 2027</span> · <span data-join-c="pad">LC-01</span></span>
+          <span class="hud-value s-join__finale-crew" data-join-finale-crew hidden></span>
+        </p>
+        <a class="btn s-join__finale-cta" href="#join-form" data-join-cta>
+          <span data-join-cta-label>Claim your seat</span>
+          <svg class="btn__arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+            <path d="M12 20V5M6 11l6-6 6 6" stroke="currentColor" stroke-width="1.6" />
+          </svg>
+        </a>
+        <p class="hud s-join__finale-item s-join__finale-item--end">
+          <span class="s-join__finale-key">Orbital sunrise</span>
+          <span class="hud-value">Simulated</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <p class="sr-only" role="status" aria-live="polite" aria-atomic="true" data-join-live></p>
 </section>

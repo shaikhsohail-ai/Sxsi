@@ -1,1 +1,1529 @@
-/* manifest section styles — scope everything under .s-manifest */
+/* ==========================================================================
+   LAUNCH MANIFEST
+   Base = vertical timeline (no JS, reduced motion, narrow / short screens).
+   .is-flight = the pinned, scroll-driven ascent on wide screens.
+   ========================================================================== */
+.s-manifest {
+  --patch: min(58vw, 236px);
+  --rail-x: 7px;
+  --indent: 40px;
+  --manifest-ease: var(--ease-out);
+  --manifest-faint: rgba(244, 246, 251, 0.54); /* faint labels that still clear AA (≈5.6:1) */
+  --manifest-gap: clamp(88px, 14vw, 136px); /* between missions in the timeline */
+  position: relative;
+  isolation: isolate;
+  background: var(--c-void);
+}
+
+.s-manifest .s-manifest__frame {
+  position: relative;
+}
+
+/* ---- Sky ------------------------------------------------------------------ */
+.s-manifest .s-manifest__sky {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.s-manifest .s-manifest__stars {
+  position: absolute;
+  inset: 0;
+  /* No hard edge where the starfield meets the neighbouring sections */
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 14vh, #000 calc(100% - 10vh), transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 14vh, #000 calc(100% - 10vh), transparent);
+}
+
+.s-manifest .s-manifest__starlayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  will-change: transform;
+}
+
+.s-manifest .s-manifest__earth {
+  display: none;
+}
+
+/* ---- Intro ---------------------------------------------------------------- */
+.s-manifest .s-manifest__track {
+  position: relative;
+  z-index: 2;
+}
+
+.s-manifest .s-manifest__intro {
+  position: relative;
+  padding-bottom: clamp(56px, 9vw, 112px);
+}
+
+.s-manifest .s-manifest__title {
+  margin-top: 22px;
+  font-size: clamp(2.6rem, 4.6vw, 4.8rem);
+}
+
+.s-manifest .s-manifest__title span {
+  display: block;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(244, 246, 251, 0.7);
+}
+
+.s-manifest .s-manifest__lead {
+  margin-top: clamp(22px, 2.4vw, 32px);
+  max-width: 40ch;
+}
+
+.s-manifest .s-manifest__tally {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 30px;
+  margin: clamp(26px, 3vw, 40px) 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--c-line);
+  max-width: 520px;
+}
+
+.s-manifest .s-manifest__tally div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 4px;
+}
+
+.s-manifest .s-manifest__tally dt {
+  color: var(--manifest-faint);
+  font-size: 0.66rem;
+}
+
+.s-manifest .s-manifest__tally dd {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.s-manifest .s-manifest__tally-hot {
+  color: var(--c-ignite);
+}
+
+.s-manifest .s-manifest__cue,
+.s-manifest .s-manifest__pad,
+.s-manifest .s-manifest__path,
+.s-manifest .s-manifest__hud {
+  display: none;
+}
+
+/* ---- Timeline (base layout) ----------------------------------------------- */
+.s-manifest .s-manifest__list {
+  position: relative;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+  list-style: none;
+}
+
+/* Base rail: a dotted trajectory, solid fill drawn over it by the script */
+.s-manifest .s-manifest__list::before,
+.s-manifest .s-manifest__rail {
+  content: '';
+  position: absolute;
+  top: calc(var(--patch) / 2);
+  bottom: 0;
+  left: calc(var(--gutter) + var(--rail-x));
+  width: 1px;
+}
+
+.s-manifest .s-manifest__list::before {
+  background: repeating-linear-gradient(180deg, rgba(244, 246, 251, 0.3) 0 2px, transparent 2px 8px);
+}
+
+.s-manifest .s-manifest__rail-fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, var(--c-atmo-deep), var(--c-atmo) 40%, var(--c-ion));
+  box-shadow: 0 0 12px rgba(111, 195, 255, 0.55);
+  transform: scaleY(0);
+  transform-origin: top;
+  will-change: transform;
+}
+
+/* The signal at the drawing tip of the rail */
+.s-manifest .s-manifest__rail-head {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  transition: opacity 0.4s var(--manifest-ease);
+  will-change: transform;
+}
+
+.s-manifest .s-manifest__rail-head::before,
+.s-manifest .s-manifest__rail-head::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+}
+
+.s-manifest .s-manifest__rail-head::before {
+  left: -22px;
+  top: -22px;
+  width: 44px;
+  height: 44px;
+  background: radial-gradient(closest-side, rgba(199, 236, 255, 0.55), rgba(111, 195, 255, 0.16) 50%, transparent);
+}
+
+.s-manifest .s-manifest__rail-head::after {
+  left: -3px;
+  top: -3px;
+  width: 7px;
+  height: 7px;
+  background: #fff;
+  box-shadow: 0 0 10px 2px rgba(199, 236, 255, 0.9);
+}
+
+/* ---- The edge of space (timeline layouts) --------------------------------- */
+/* (:not(.is-flight) also outranks the sibling margin rule further down) */
+.s-manifest:not(.is-flight) .s-manifest__mission.has-edge {
+  --edge-gap: calc(var(--manifest-gap) + 56px);
+  margin-top: var(--edge-gap);
+}
+
+.s-manifest .s-manifest__edge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--edge-gap) * -0.56);
+  height: 0;
+  pointer-events: none;
+}
+
+/* Atmosphere: everything above the line (flown, underway) sits in a faint blue */
+.s-manifest .s-manifest__edge::before,
+.s-manifest .s-manifest__edge::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: calc(50% - 50vw);
+  width: 100vw;
+}
+
+.s-manifest .s-manifest__edge::before {
+  bottom: 0;
+  height: min(110vh, 1000px);
+  background: radial-gradient(ellipse 95% 100% at 50% 100%, rgba(31, 107, 255, 0.12), rgba(31, 107, 255, 0.04) 38%, transparent 78%);
+}
+
+/* Airglow: the thin luminous layer that really does sit near 100 km */
+.s-manifest .s-manifest__edge::after {
+  top: -34px;
+  height: 64px;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(111, 195, 255, 0.2), rgba(31, 107, 255, 0.07) 55%, transparent);
+}
+
+.s-manifest .s-manifest__edge-line {
+  position: absolute;
+  left: calc(50% - 50vw);
+  width: 100vw;
+  top: 0;
+  height: 1px;
+  background: repeating-linear-gradient(90deg, rgba(199, 236, 255, 0.55) 0 4px, transparent 4px 10px);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  opacity: 0.6;
+  transition: opacity 1s var(--manifest-ease);
+}
+
+.s-manifest .s-manifest__edge-label,
+.s-manifest .s-manifest__edge-tag {
+  position: absolute;
+  top: 14px;
+  font-size: 0.62rem;
+  white-space: nowrap;
+}
+
+.s-manifest .s-manifest__edge-label {
+  left: var(--indent);
+  color: var(--manifest-faint);
+}
+
+.s-manifest .s-manifest__edge-label span {
+  color: var(--c-text-dim);
+}
+
+.s-manifest .s-manifest__edge-tag {
+  right: 0;
+  color: var(--c-atmo);
+  transition: text-shadow 1s var(--manifest-ease);
+}
+
+.s-manifest .s-manifest__edge.is-crossed .s-manifest__edge-line {
+  opacity: 1;
+}
+
+.s-manifest .s-manifest__edge.is-crossed .s-manifest__edge-tag {
+  text-shadow: 0 0 14px rgba(111, 195, 255, 0.8);
+}
+
+.s-manifest.is-flight .s-manifest__edge {
+  display: none;
+}
+
+.s-manifest .s-manifest__mission {
+  position: relative;
+  padding-left: var(--indent);
+}
+
+.s-manifest .s-manifest__mission + .s-manifest__mission {
+  margin-top: var(--manifest-gap);
+}
+
+/* Node on the rail, level with the patch centre */
+.s-manifest .s-manifest__mission::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  left: calc(var(--rail-x) - 4px);
+  top: calc(var(--patch) / 2 - 4px);
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--c-line-strong);
+  border-radius: 50%;
+  background: var(--c-void);
+  transition: background 0.6s var(--manifest-ease), border-color 0.6s var(--manifest-ease), box-shadow 0.6s var(--manifest-ease);
+}
+
+.s-manifest .s-manifest__mission.is-reached::before {
+  border-color: var(--c-ion);
+  background: var(--c-ion);
+  box-shadow: 0 0 0 4px rgba(111, 195, 255, 0.16), 0 0 14px rgba(111, 195, 255, 0.8);
+}
+
+.s-manifest .s-manifest__mission[data-status='active'].is-reached::before {
+  border-color: var(--c-ignite-soft);
+  background: var(--c-ignite);
+  box-shadow: 0 0 0 4px rgba(255, 107, 44, 0.18), 0 0 16px rgba(255, 107, 44, 0.85);
+}
+
+.s-manifest .s-manifest__item {
+  display: grid;
+  gap: 26px;
+}
+
+/* ---- Patch ---------------------------------------------------------------- */
+.s-manifest .s-manifest__patch-slot {
+  position: relative;
+  width: var(--patch);
+  aspect-ratio: 1;
+}
+
+.s-manifest .s-manifest__patch {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.s-manifest button.s-manifest__patch {
+  z-index: 1;
+  cursor: pointer;
+}
+
+.s-manifest button.s-manifest__patch:focus-visible {
+  outline: none;
+}
+
+/* Static (no-JS) stand-in: double ring with the mission number */
+.s-manifest .s-manifest__patch--static {
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--c-line-strong);
+  background: radial-gradient(circle at 50% 30%, #0c1b36, #02050c 72%);
+  box-shadow: inset 0 0 0 10px rgba(255, 255, 255, 0.03), inset 0 0 0 11px var(--c-line);
+}
+
+.s-manifest .s-manifest__patch-num {
+  font-family: var(--font-display);
+  font-stretch: var(--display-stretch);
+  font-weight: 650;
+  font-size: calc(var(--patch) * 0.2);
+  letter-spacing: 0.04em;
+  color: var(--c-text-dim);
+}
+
+.s-manifest .s-manifest__patch-tilt {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: 50%;
+  will-change: transform;
+}
+
+.s-manifest .s-manifest__patch-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.7));
+}
+
+/* Light sheen: a hotspot that follows the pointer + a satin streak */
+.s-manifest .s-manifest__patch-sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at var(--mx, 30%) var(--my, 24%), rgba(255, 255, 255, 0.34), rgba(199, 236, 255, 0.1) 22%, transparent 48%),
+    linear-gradient(
+      118deg,
+      transparent calc(var(--mx, 30%) - 24%),
+      rgba(199, 236, 255, 0.16) calc(var(--mx, 30%) - 8%),
+      rgba(255, 255, 255, 0.05) calc(var(--mx, 30%) - 2%),
+      transparent calc(var(--mx, 30%) + 12%)
+    );
+  mix-blend-mode: screen;
+  opacity: 0;
+  transition: opacity 0.6s var(--manifest-ease);
+}
+
+.s-manifest .s-manifest__patch-slot.is-hover .s-manifest__patch-sheen,
+.s-manifest .s-manifest__patch-slot.is-focus .s-manifest__patch-sheen {
+  opacity: 1;
+}
+
+/* Light catches the badge once as the trajectory reaches it. The band is the
+   element's own background (always clipped by its border-radius — a moving
+   child layer can escape a rounded overflow clip mid-animation). */
+.s-manifest .s-manifest__patch-glint {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background: linear-gradient(
+      104deg,
+      transparent 38%,
+      rgba(199, 236, 255, 0.07) 44%,
+      rgba(255, 255, 255, 0.3) 50%,
+      rgba(199, 236, 255, 0.07) 56%,
+      transparent 62%
+    )
+    no-repeat;
+  background-size: 260% 100%;
+  background-position: 100% 0;
+  mix-blend-mode: screen;
+  will-change: transform; /* own layer: the sweep repaints only itself, not the patch art */
+}
+
+.s-manifest:not(.is-static) .s-manifest__mission.is-reached .s-manifest__patch-glint {
+  animation: manifest-glint 1.6s var(--ease-in-out) 0.25s 1 both;
+}
+
+@keyframes manifest-glint {
+  to { background-position: 0% 0; }
+}
+
+/* Focus ring hugs the badge */
+.s-manifest .s-manifest__patch::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--c-atmo);
+  box-shadow: var(--glow-atmo);
+  opacity: 0;
+  transform: scale(0.96);
+  transition: opacity 0.35s var(--manifest-ease), transform 0.5s var(--manifest-ease);
+  pointer-events: none;
+}
+
+.s-manifest .s-manifest__patch:focus-visible::after {
+  opacity: 1;
+  transform: none;
+}
+
+/* Collect hint */
+.s-manifest .s-manifest__patch-hint {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 14px);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  color: var(--c-text-dim);
+  font-size: 0.64rem;
+  transform: translate(-50%, 0);
+  transition: opacity 0.45s var(--manifest-ease), transform 0.6s var(--manifest-ease), color 0.3s;
+  pointer-events: none;
+}
+
+.s-manifest .s-manifest__patch-hint svg {
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+}
+
+.s-manifest .s-manifest__patch-hint-done {
+  display: none;
+}
+
+/* Touch, narrow: the hint sits beside the badge, reading upward */
+@media (max-width: 719.98px) {
+  .s-manifest .s-manifest__patch-hint {
+    left: calc(100% + 14px);
+    top: auto;
+    bottom: 8px;
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 10px;
+    white-space: normal;
+    width: 9ch;
+    line-height: 1.5;
+    transform: none;
+  }
+}
+
+.s-manifest .is-collected .s-manifest__patch-hint {
+  color: var(--c-ok);
+  opacity: 1;
+}
+
+.s-manifest .is-collected .s-manifest__patch-hint-idle {
+  display: none;
+}
+
+.s-manifest .is-collected .s-manifest__patch-hint-done {
+  display: inline;
+}
+
+.s-manifest .is-busy .s-manifest__patch {
+  cursor: progress;
+}
+
+@media (hover: hover) and (pointer: fine) and (min-width: 720px) {
+  .s-manifest .s-manifest__patch-hint {
+    opacity: 0;
+    transform: translate(-50%, -6px);
+  }
+
+  .s-manifest .s-manifest__patch-slot.is-hover .s-manifest__patch-hint,
+  .s-manifest .s-manifest__patch-slot.is-focus .s-manifest__patch-hint,
+  .s-manifest .s-manifest__patch-slot.is-collected .s-manifest__patch-hint {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* Mission in progress: an ignition halo + a slow orbit ring */
+.s-manifest .s-manifest__patch-halo {
+  position: absolute;
+  inset: -20%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgba(255, 107, 44, 0.3), rgba(255, 107, 44, 0.08) 62%, transparent);
+  animation: manifest-breathe 4.8s ease-in-out infinite;
+}
+
+.s-manifest .s-manifest__patch-halo::after {
+  content: '';
+  position: absolute;
+  inset: 11%;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 138, 76, 0.45);
+  animation: manifest-spin 60s linear infinite;
+}
+
+@keyframes manifest-breathe {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+
+@keyframes manifest-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---- Card ----------------------------------------------------------------- */
+.s-manifest .s-manifest__card {
+  min-width: 0;
+}
+
+.s-manifest .s-manifest__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.s-manifest .s-manifest__meta::after {
+  content: '';
+  order: 1;
+  flex: 1 1 24px;
+  min-width: 24px;
+  height: 1px;
+  background: var(--c-line);
+}
+
+.s-manifest .s-manifest__status {
+  order: 2;
+  color: var(--c-text);
+}
+
+.s-manifest .s-manifest__status--complete::before {
+  animation: none;
+}
+
+.s-manifest .s-manifest__mission[data-status='active'] .s-manifest__status {
+  color: var(--c-ignite-soft);
+}
+
+.s-manifest .s-manifest__mission[data-status='planned'] .s-manifest__status,
+.s-manifest .s-manifest__mission[data-status='tbd'] .s-manifest__status {
+  color: var(--c-text-dim);
+}
+
+.s-manifest .s-manifest__num .hud-value {
+  margin-left: 0.3em;
+}
+
+.s-manifest .s-manifest__name {
+  margin-top: 16px;
+  font-size: clamp(2rem, 3vw, 2.7rem);
+  line-height: 0.95;
+  font-weight: 650;
+}
+
+.s-manifest .s-manifest__window {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  margin-top: 14px;
+  color: var(--manifest-faint);
+}
+
+.s-manifest .s-manifest__window .hud-value {
+  color: var(--c-text);
+}
+
+.s-manifest .s-manifest__mission[data-status='active'] .s-manifest__window .hud-value {
+  color: var(--c-ignite-soft);
+}
+
+.s-manifest .s-manifest__countdown {
+  color: var(--c-ignite);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.s-manifest .s-manifest__countdown::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 1px;
+  margin-right: 10px;
+  vertical-align: 0.3em;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+.s-manifest .s-manifest__objective {
+  margin-top: 16px;
+  max-width: 40ch;
+  color: var(--c-text-dim);
+  font-size: 1rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.s-manifest .s-manifest__specs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  gap: 6px 28px;
+  margin: 20px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--c-line);
+}
+
+.s-manifest .s-manifest__specs div {
+  display: grid;
+  gap: 3px;
+}
+
+.s-manifest .s-manifest__specs dt {
+  color: var(--manifest-faint);
+  font-size: 0.62rem;
+}
+
+.s-manifest .s-manifest__specs dd {
+  margin: 0;
+  color: var(--c-text);
+}
+
+/* ---- Outro ---------------------------------------------------------------- */
+.s-manifest .s-manifest__outro {
+  position: relative;
+  padding-top: clamp(96px, 14vw, 160px);
+}
+
+.s-manifest .s-manifest__outro-kicker {
+  color: var(--manifest-faint);
+}
+
+.s-manifest .s-manifest__outro-title {
+  margin-top: 18px;
+  font-family: var(--font-display);
+  font-stretch: var(--display-stretch);
+  font-weight: 650;
+  font-size: clamp(2.1rem, 4vw, 3.6rem);
+  line-height: 0.95;
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+}
+
+.s-manifest .s-manifest__outro-body {
+  margin-top: 22px;
+  max-width: 44ch;
+}
+
+.s-manifest .s-manifest__cta {
+  margin-top: 32px;
+}
+
+.s-manifest .s-manifest__note {
+  margin-top: 26px;
+  font-size: 0.62rem;
+  color: var(--manifest-faint);
+}
+
+/* ---- Reveal (only once the script has armed the section) ------------------ */
+.s-manifest.is-armed:not(.is-static) [data-manifest-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 26px, 0);
+  transition: opacity 1s var(--manifest-ease), transform 1.4s var(--manifest-ease);
+}
+
+.s-manifest.is-armed.is-entered [data-manifest-reveal] {
+  opacity: 1;
+  transform: none;
+}
+
+.s-manifest.is-entered [data-manifest-reveal]:nth-child(2) { transition-delay: 0.08s; }
+.s-manifest.is-entered [data-manifest-reveal]:nth-child(3) { transition-delay: 0.18s; }
+.s-manifest.is-entered [data-manifest-reveal]:nth-child(4) { transition-delay: 0.28s; }
+.s-manifest.is-entered [data-manifest-reveal]:nth-child(5) { transition-delay: 0.38s; }
+
+/* The slot is promoted up front: if Chromium creates its layer mid-animation,
+   textPath lettering inside the SVG is rasterised with a stale transform. */
+.s-manifest.is-armed:not(.is-static) .s-manifest__patch-slot {
+  opacity: 0;
+  transform: scale(0.8) rotate(-32deg);
+  transition: opacity 1s var(--manifest-ease), transform 1.8s var(--manifest-ease);
+  will-change: transform, opacity;
+}
+
+.s-manifest.is-armed:not(.is-static) .s-manifest__card > * {
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+  transition: opacity 0.9s var(--manifest-ease), transform 1.2s var(--manifest-ease);
+}
+
+.s-manifest.is-armed .s-manifest__mission.is-in .s-manifest__patch-slot,
+.s-manifest.is-armed .s-manifest__mission.is-in .s-manifest__card > * {
+  opacity: 1;
+  transform: none;
+}
+
+.s-manifest .s-manifest__mission.is-in .s-manifest__card > :nth-child(1) { transition-delay: 0.15s; }
+.s-manifest .s-manifest__mission.is-in .s-manifest__card > :nth-child(2) { transition-delay: 0.22s; }
+.s-manifest .s-manifest__mission.is-in .s-manifest__card > :nth-child(3) { transition-delay: 0.3s; }
+.s-manifest .s-manifest__mission.is-in .s-manifest__card > :nth-child(4) { transition-delay: 0.38s; }
+.s-manifest .s-manifest__mission.is-in .s-manifest__card > :nth-child(5) { transition-delay: 0.46s; }
+
+/* ---- Timeline on wider screens ------------------------------------------- */
+@media (min-width: 720px) {
+  .s-manifest {
+    --patch: 216px;
+    --indent: 72px;
+  }
+
+  .s-manifest .s-manifest__item {
+    grid-template-columns: var(--patch) minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(36px, 5vw, 72px);
+  }
+
+  .s-manifest .s-manifest__patch-hint {
+    top: calc(100% + 16px);
+  }
+}
+
+@media (min-width: 1100px) {
+  .s-manifest {
+    --patch: 240px;
+    --indent: 96px;
+  }
+
+  .s-manifest .s-manifest__card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 0.55fr);
+    column-gap: 56px;
+    align-items: start;
+  }
+
+  .s-manifest .s-manifest__card > :not(.s-manifest__specs) {
+    grid-column: 1;
+  }
+
+  .s-manifest .s-manifest__specs {
+    grid-column: 2;
+    grid-row: 2 / span 3;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-top: 16px;
+    padding-top: 0;
+    padding-left: 22px;
+    border-top: 0;
+    border-left: 1px solid var(--c-line);
+  }
+
+  .s-manifest .s-manifest__outro {
+    padding-left: calc(var(--gutter) + var(--indent));
+  }
+
+  /* Wide static / short-screen timeline: the intro spreads over two columns */
+  .s-manifest:not(.is-flight) .s-manifest__intro {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    column-gap: clamp(48px, 6vw, 112px);
+    align-items: end;
+  }
+
+  .s-manifest:not(.is-flight) .s-manifest__intro > .eyebrow {
+    grid-column: 1;
+    justify-self: start;
+  }
+
+  .s-manifest:not(.is-flight) .s-manifest__title {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  /* Lead sits on the title's baseline; the tally hangs beneath it */
+  .s-manifest:not(.is-flight) .s-manifest__lead {
+    grid-column: 2;
+    grid-row: 2;
+    margin-top: 0;
+    margin-bottom: -0.3em;
+  }
+
+  .s-manifest:not(.is-flight) .s-manifest__tally {
+    grid-column: 2;
+    grid-row: 3;
+  }
+}
+
+/* ==========================================================================
+   FLIGHT MODE — pinned horizontal ascent (wide screens, motion allowed)
+   ========================================================================== */
+.s-manifest.is-flight {
+  --patch: clamp(176px, min(25vh, 17vw), 280px);
+  --intro-w: max(46vw, 470px);
+  --station-w: max(41vw, 560px);
+  --outro-w: max(56vw, 640px);
+  --y0: 55%;
+  --y1: 31%;
+  padding-block: 0;
+}
+
+.s-manifest.is-flight .s-manifest__frame {
+  height: 100vh;
+  overflow: clip;
+}
+
+.s-manifest.is-flight .s-manifest__earth {
+  display: block;
+  position: absolute;
+  left: -15%;
+  bottom: 0;
+  width: 130%;
+  height: 30vh; /* limb sits under the first card's specs, and under the pad at 82.6% */
+  will-change: transform, opacity;
+}
+
+.s-manifest .s-manifest__planet {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  overflow: visible;
+}
+
+/* Atmospheric scattering above the limb — it sinks with the planet, so the sky
+   turns from deep blue-black to pure black as the flight climbs. */
+.s-manifest .s-manifest__airglow {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 42%;
+  height: 64vh;
+  background:
+    radial-gradient(ellipse 50% 100% at 50% 100%, rgba(31, 107, 255, 0.2), rgba(31, 107, 255, 0.07) 42%, transparent 72%),
+    radial-gradient(ellipse 30% 40% at 50% 100%, rgba(111, 195, 255, 0.12), transparent 80%);
+  pointer-events: none;
+}
+
+/* Orbital sunrise: a point on the limb (x 760 / y 149 of the 1000×300 viewBox) */
+.s-manifest .s-manifest__sun {
+  position: absolute;
+  left: 76%;
+  top: 49.7%;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  will-change: opacity;
+}
+
+.s-manifest .s-manifest__sun::before,
+.s-manifest .s-manifest__sun::after,
+.s-manifest .s-manifest__sun-flare {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Wide, cool bloom across the sky */
+.s-manifest .s-manifest__sun::before {
+  width: 92vw;
+  height: 58vh;
+  transform: translate(-50%, -54%);
+  background: radial-gradient(closest-side, rgba(199, 236, 255, 0.26), rgba(111, 195, 255, 0.1) 34%, rgba(31, 107, 255, 0.04) 62%, transparent);
+}
+
+/* Hot core just cresting the limb */
+.s-manifest .s-manifest__sun::after {
+  width: 220px;
+  height: 64px;
+  transform: translate(-50%, -60%);
+  background: radial-gradient(closest-side, #fff, rgba(255, 240, 224, 0.92) 16%, rgba(255, 180, 107, 0.3) 46%, transparent);
+}
+
+/* Limb-hugging flare: the sunlit rim of the atmosphere */
+.s-manifest .s-manifest__sun-flare {
+  width: 90vw;
+  height: 2px;
+  border-radius: 0;
+  transform: translate(-50%, -50%) rotate(5.6deg);
+  background: linear-gradient(90deg, transparent, rgba(199, 236, 255, 0.3) 28%, rgba(255, 248, 240, 1) 50%, rgba(199, 236, 255, 0.3) 72%, transparent);
+  box-shadow: 0 0 22px 3px rgba(111, 195, 255, 0.3);
+}
+
+.s-manifest .s-manifest__planet-haze {
+  fill: none;
+  stroke: rgba(31, 107, 255, 0.75);
+  stroke-width: 22;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.85;
+}
+
+.s-manifest .s-manifest__planet-limb {
+  fill: none;
+  stroke: var(--c-ion);
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+}
+
+.s-manifest.is-flight .s-manifest__track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: calc(var(--intro-w) + var(--count) * var(--station-w) + var(--outro-w));
+  will-change: transform;
+}
+
+/* Intro panel */
+.s-manifest.is-flight .s-manifest__intro {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--intro-w);
+  max-width: none;
+  height: 100%;
+  margin: 0;
+  padding-top: calc(var(--nav-h) + 11vh);
+  padding-bottom: 0;
+  padding-right: 4vw;
+}
+
+.s-manifest.is-flight .s-manifest__lead {
+  max-width: 34ch;
+}
+
+.s-manifest.is-flight .s-manifest__cue {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: absolute;
+  left: var(--gutter);
+  bottom: 9vh;
+  color: var(--manifest-faint);
+}
+
+.s-manifest .s-manifest__cue-line {
+  position: relative;
+  width: 56px;
+  height: 1px;
+  overflow: hidden;
+  background: var(--c-line);
+}
+
+.s-manifest .s-manifest__cue-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--c-text);
+  transform: translateX(-100%);
+  animation: manifest-cue 2.6s var(--ease-in-out) infinite;
+}
+
+@keyframes manifest-cue {
+  60%, 100% { transform: translateX(100%); }
+}
+
+/* Launch pad */
+.s-manifest.is-flight .s-manifest__pad {
+  display: block;
+  position: absolute;
+  left: calc(var(--intro-w) - 5vw);
+  top: 82.6%;
+  width: 0;
+  height: 0;
+}
+
+.s-manifest .s-manifest__pad-mark {
+  position: absolute;
+  left: -9px;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--c-ion);
+  border-radius: 50%;
+}
+
+.s-manifest .s-manifest__pad-mark::before,
+.s-manifest .s-manifest__pad-mark::after {
+  content: '';
+  position: absolute;
+  background: var(--c-ion);
+}
+
+.s-manifest .s-manifest__pad-mark::before {
+  left: 50%;
+  top: -7px;
+  bottom: -7px;
+  width: 1px;
+}
+
+.s-manifest .s-manifest__pad-mark::after {
+  top: 50%;
+  left: -7px;
+  right: -7px;
+  height: 1px;
+}
+
+.s-manifest .s-manifest__pad-label {
+  position: absolute;
+  left: 20px;
+  top: 10px;
+  white-space: nowrap;
+  color: var(--c-text);
+  font-size: 0.64rem;
+}
+
+.s-manifest .s-manifest__pad-label span {
+  color: var(--c-ignite-soft);
+}
+
+/* Trajectory */
+.s-manifest.is-flight .s-manifest__path {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+  /* Own layer: redrawing the trajectory each frame must not re-raster the cards' text */
+  will-change: transform;
+}
+
+.s-manifest .s-manifest__line-ghost {
+  fill: none;
+  stroke: rgba(244, 246, 251, 0.26);
+  stroke-width: 1;
+  stroke-dasharray: 1 7;
+  stroke-linecap: round;
+}
+
+.s-manifest .s-manifest__line {
+  fill: none;
+  stroke: url(#manifest-line-grad);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.s-manifest .s-manifest__line-glow {
+  fill: none;
+  stroke: url(#manifest-line-grad);
+  stroke-width: 7;
+  stroke-linecap: round;
+  opacity: 0.14;
+}
+
+.s-manifest .s-manifest__line-ticks line {
+  stroke: rgba(244, 246, 251, 0.18);
+  stroke-width: 1;
+  transition: stroke 0.6s var(--manifest-ease);
+}
+
+.s-manifest .s-manifest__line-ticks line.is-on {
+  stroke: rgba(199, 236, 255, 0.7);
+}
+
+.s-manifest .s-manifest__line-hot,
+.s-manifest .s-manifest__line-hot-glow {
+  fill: none;
+  stroke: url(#manifest-hot-grad);
+  stroke-linecap: round;
+}
+
+.s-manifest .s-manifest__line-hot {
+  stroke-width: 2.2;
+}
+
+.s-manifest .s-manifest__line-hot-glow {
+  stroke-width: 9;
+  opacity: 0.3;
+}
+
+.s-manifest .s-manifest__head {
+  opacity: 0;
+}
+
+/* Ghost numerals (deep parallax plane) */
+.s-manifest .s-manifest__ghosts {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.s-manifest .s-manifest__ghost {
+  position: absolute;
+  bottom: -3.5vh;
+  -webkit-mask-image: linear-gradient(180deg, #000 30%, transparent 92%);
+  mask-image: linear-gradient(180deg, #000 30%, transparent 92%);
+  transition: -webkit-text-stroke-color 1.4s var(--manifest-ease);
+  font-family: var(--font-display);
+  font-stretch: 112%;
+  font-weight: 700;
+  font-size: min(27vh, 18vw);
+  line-height: 0.8;
+  letter-spacing: 0;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(244, 246, 251, 0.075);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.s-manifest .s-manifest__ghost.is-current {
+  -webkit-text-stroke-color: rgba(199, 236, 255, 0.2);
+}
+
+.s-manifest .s-manifest__ghost[data-status='active'] {
+  -webkit-text-stroke-color: rgba(255, 107, 44, 0.14);
+}
+
+.s-manifest .s-manifest__ghost[data-status='active'].is-current {
+  -webkit-text-stroke-color: rgba(255, 107, 44, 0.32);
+}
+
+/* Destination light, growing as the flight nears its end */
+.s-manifest .s-manifest__beyond {
+  display: none;
+}
+
+.s-manifest.is-flight .s-manifest__beyond {
+  display: block;
+  position: absolute;
+  top: -40vh;
+  right: -30vw;
+  width: 90vw;
+  height: 90vh;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(199, 236, 255, 0.16), rgba(111, 195, 255, 0.06) 45%, transparent 75%);
+  opacity: 0;
+  will-change: opacity;
+}
+
+/* Stations */
+.s-manifest.is-flight .s-manifest__list {
+  position: absolute;
+  inset: 0;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.s-manifest.is-flight .s-manifest__list::before {
+  content: none;
+}
+
+.s-manifest.is-flight .s-manifest__mission {
+  position: absolute;
+  left: calc(var(--intro-w) + var(--i) * var(--station-w) + var(--patch) / 2);
+  top: calc(var(--y0) + (var(--y1) - var(--y0)) * var(--t, 0));
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.s-manifest.is-flight .s-manifest__mission::before {
+  content: none;
+}
+
+.s-manifest.is-flight .s-manifest__item {
+  display: block;
+}
+
+.s-manifest.is-flight .s-manifest__patch-slot {
+  position: absolute;
+  left: calc(var(--patch) / -2);
+  top: calc(var(--patch) / -2);
+  width: var(--patch);
+}
+
+/* Not yet reached: the patch waits in shadow until the trajectory arrives */
+.s-manifest.is-flight .s-manifest__patch-tilt::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  transition: opacity 1.2s var(--manifest-ease);
+  pointer-events: none;
+}
+
+.s-manifest.is-flight .s-manifest__mission.is-reached .s-manifest__patch-tilt::after {
+  opacity: 0;
+}
+
+/* Waypoint captured: one soft ring expands as the trajectory arrives */
+.s-manifest.is-flight .s-manifest__patch-slot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid var(--c-atmo);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.s-manifest.is-flight .s-manifest__mission.is-reached .s-manifest__patch-slot::after {
+  animation: manifest-ping 1.8s var(--ease-out) 1;
+}
+
+.s-manifest.is-flight .s-manifest__mission[data-status='active'].is-reached .s-manifest__patch-slot::after {
+  border-color: var(--c-ignite);
+}
+
+@keyframes manifest-ping {
+  0% { opacity: 0.9; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.55); }
+}
+
+.s-manifest.is-flight .s-manifest__card {
+  display: block;
+  position: absolute;
+  left: calc(var(--patch) / 2 + 30px);
+  top: 18px;
+  /* Never wider than the room left of the right gutter at the opening frame */
+  width: clamp(
+    240px,
+    min(calc(var(--station-w) - var(--patch) - 70px), calc(100vw - var(--intro-w) - var(--patch) - var(--gutter) - 30px)),
+    360px
+  );
+}
+
+.s-manifest.is-flight .s-manifest__name {
+  font-size: clamp(1.7rem, 2.3vw, 2.6rem);
+}
+
+.s-manifest.is-flight .s-manifest__objective {
+  font-size: 0.95rem;
+}
+
+/* Specs: shown on tall screens, kept for assistive tech on short ones */
+.s-manifest.is-flight .s-manifest__card .s-manifest__specs {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (min-height: 860px) {
+  .s-manifest.is-flight .s-manifest__card .s-manifest__specs {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 18px 0 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, max-content));
+    gap: 6px 28px;
+    padding: 12px 0 0;
+    border: 0;
+    border-top: 1px solid var(--c-line);
+  }
+}
+
+/* Outro panel */
+.s-manifest.is-flight .s-manifest__outro {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--outro-w);
+  max-width: none;
+  height: 100%;
+  margin: 0;
+  padding: 0 var(--gutter) 0 calc(var(--outro-w) * 0.34);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding-bottom: 15vh;
+}
+
+.s-manifest.is-flight .s-manifest__outro-title {
+  font-size: clamp(2.4rem, 4.4vw, 4.6rem);
+}
+
+.s-manifest.is-flight .s-manifest__outro > * {
+  align-self: flex-start;
+}
+
+/* HUD */
+.s-manifest.is-flight .s-manifest__hud {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 1; /* above the sky, below the track */
+  pointer-events: none;
+}
+
+.s-manifest .s-manifest__hud-title,
+.s-manifest .s-manifest__hud-tlm {
+  position: absolute;
+  top: calc(var(--nav-h) + 22px);
+}
+
+.s-manifest .s-manifest__hud-title {
+  left: var(--gutter);
+  opacity: 0;
+  transform: translate3d(0, -6px, 0);
+  transition: opacity 0.6s var(--manifest-ease), transform 0.8s var(--manifest-ease);
+}
+
+.s-manifest.is-underway .s-manifest__hud-title {
+  opacity: 1;
+  transform: none;
+}
+
+.s-manifest .s-manifest__hud-tlm {
+  right: var(--gutter);
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  opacity: 0;
+  transform: translate3d(0, -6px, 0);
+  transition: opacity 0.8s var(--manifest-ease), transform 1s var(--manifest-ease);
+}
+
+.s-manifest.is-engaged .s-manifest__hud-tlm {
+  opacity: 1;
+  transform: none;
+}
+
+.s-manifest .s-manifest__hud-tlm .hud-value {
+  display: inline-block;
+  min-width: 7ch;
+  margin-right: 0.35em;
+  text-align: right;
+}
+
+.s-manifest .s-manifest__hud-sim {
+  padding: 3px 7px;
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+  font-size: 0.6rem;
+  color: var(--manifest-faint);
+}
+
+.s-manifest .s-manifest__karman {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--karman, 41%);
+  height: 1px;
+  background: repeating-linear-gradient(90deg, rgba(244, 246, 251, 0.14) 0 4px, transparent 4px 10px);
+  opacity: 0;
+  transition: opacity 1s var(--manifest-ease);
+}
+
+.s-manifest.is-underway:not(.is-outro) .s-manifest__karman {
+  opacity: 1;
+}
+
+.s-manifest .s-manifest__karman-label {
+  position: absolute;
+  bottom: 8px;
+  left: var(--gutter);
+  font-size: 0.6rem;
+  color: var(--manifest-faint);
+  white-space: nowrap;
+  transition: color 0.8s var(--manifest-ease), opacity 0.5s var(--manifest-ease);
+}
+
+/* A patch or card is sliding across the label: step aside */
+.s-manifest .s-manifest__karman-label.is-covered {
+  opacity: 0;
+}
+
+.s-manifest .s-manifest__karman-label span {
+  transition: color 0.8s var(--manifest-ease);
+}
+
+.s-manifest.is-space .s-manifest__karman-label span {
+  color: var(--c-atmo);
+}
+
+/* Index (jump to mission) */
+.s-manifest .s-manifest__index {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: 4.2vh;
+  transform: translateX(-50%);
+}
+
+.s-manifest .s-manifest__index[hidden] {
+  display: none;
+}
+
+.s-manifest .s-manifest__index-list {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.s-manifest .s-manifest__index-btn {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 14px 12px;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--manifest-faint);
+  transition: color 0.4s var(--manifest-ease);
+}
+
+.s-manifest .s-manifest__index-name {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  transition: max-width 0.7s var(--manifest-ease), opacity 0.5s var(--manifest-ease);
+}
+
+.s-manifest .s-manifest__index-btn:hover,
+.s-manifest .s-manifest__index-btn:focus-visible,
+.s-manifest .s-manifest__index-btn.is-past {
+  color: var(--c-text-dim);
+}
+
+.s-manifest .s-manifest__index-btn[aria-current='step'] {
+  color: var(--c-text);
+}
+
+.s-manifest .s-manifest__index-btn[aria-current='step'][data-status='active'] .s-manifest__index-num {
+  color: var(--c-ignite);
+}
+
+.s-manifest .s-manifest__index-btn[aria-current='step'] .s-manifest__index-name,
+.s-manifest .s-manifest__index-btn:hover .s-manifest__index-name,
+.s-manifest .s-manifest__index-btn:focus-visible .s-manifest__index-name {
+  max-width: 14ch;
+  opacity: 1;
+}
+
+.s-manifest .s-manifest__index-rail {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 0;
+  height: 1px;
+  background: var(--c-line);
+}
+
+.s-manifest .s-manifest__index-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--c-text);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+/* ---- Reduced motion -------------------------------------------------------- */
+/* Off-screen: pause the decorative loops */
+.s-manifest.is-idle .s-manifest__patch-halo,
+.s-manifest.is-idle .s-manifest__patch-halo::after,
+.s-manifest.is-idle .s-manifest__cue-line::after,
+.s-manifest.is-idle .status::before {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .s-manifest .status::before,
+  .s-manifest .s-manifest__patch-halo,
+  .s-manifest .s-manifest__patch-halo::after,
+  .s-manifest .s-manifest__patch-glint,
+  .s-manifest .s-manifest__cue-line::after {
+    animation: none;
+  }
+}

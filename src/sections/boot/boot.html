@@ -1,1 +1,31 @@
-<!-- Boot overlay (rendered by boot.js) -->
+<!--
+  Boot overlay. Decided before first paint (so returning visitors never see a
+  flash of black): runs once per browser session, never with ?noboot or under
+  reduced motion; ?boot forces a replay. The cover only paints when JS is on.
+  Until boot.js arrives it shows a quiet CSS-only "acquiring signal" standby
+  (never a dead black screen); boot.js then builds the sequence inside it and
+  removes it when done.
+-->
+<script>
+  ;(function () {
+    var run = true
+    var forced = false
+    try {
+      var params = new URLSearchParams(location.search)
+      forced = params.has('boot')
+      if (params.has('noboot')) run = false
+      if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) run = false
+    } catch (e) {}
+    try {
+      if (!forced && sessionStorage.getItem('sxsi:booted') === '1') run = false
+    } catch (e) {}
+    document.documentElement.setAttribute('data-boot', run ? 'run' : 'skip')
+  })()
+</script>
+<div class="s-boot" data-boot-cover aria-hidden="true">
+  <div class="s-boot__standby">
+    <span class="s-boot__standby-reticle"><i></i></span>
+    <span class="s-boot__standby-label">SXSI <b>·</b> Acquiring signal</span>
+    <span class="s-boot__standby-scan"></span>
+  </div>
+</div>

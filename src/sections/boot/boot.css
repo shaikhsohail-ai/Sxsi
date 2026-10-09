@@ -1,1 +1,513 @@
-/* boot styles — scope everything under .s-boot */
+/* ==========================================================================
+   BOOT — flight-computer boot, countdown, ignition, fairing separation.
+   The cover paints from the first frame only when JS is on and the inline
+   script in boot.html decided to run; boot.js fills it in and removes it.
+   ========================================================================== */
+.s-boot {
+  display: none;
+}
+
+html.js[data-boot='run'] .s-boot {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-boot);
+  display: block;
+  overflow: hidden;
+  background: var(--c-void);
+  color: var(--c-text);
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  /* Failsafe: if scripts never arrive, never trap the page behind black. */
+  animation: s-boot-failsafe 0.6s ease 7s forwards;
+}
+
+@keyframes s-boot-failsafe {
+  to {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+html.js[data-boot='run'] .s-boot.is-built {
+  background: transparent;
+  animation: none;
+}
+
+/* ---- Standby: CSS-only, shown while the scripts are still on their way ----
+   Fades in after a beat so fast loads go straight to the sequence. */
+.s-boot__standby {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 22px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: rgba(244, 246, 251, 0.6);
+  animation: s-boot-standby-in 0.8s var(--ease-out) 0.35s both;
+}
+
+@keyframes s-boot-standby-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.s-boot__standby-reticle {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(244, 246, 251, 0.22);
+  border-radius: 50%;
+}
+
+/* crosshair ticks */
+.s-boot__standby-reticle::before,
+.s-boot__standby-reticle::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: rgba(244, 246, 251, 0.35);
+}
+
+.s-boot__standby-reticle::before {
+  width: 72px;
+  height: 1px;
+  margin-left: -36px;
+  -webkit-mask: linear-gradient(90deg, #000 0 14px, transparent 14px 58px, #000 58px);
+  mask: linear-gradient(90deg, #000 0 14px, transparent 14px 58px, #000 58px);
+}
+
+.s-boot__standby-reticle::after {
+  width: 1px;
+  height: 72px;
+  margin-top: -36px;
+  -webkit-mask: linear-gradient(180deg, #000 0 14px, transparent 14px 58px, #000 58px);
+  mask: linear-gradient(180deg, #000 0 14px, transparent 14px 58px, #000 58px);
+}
+
+.s-boot__standby-reticle i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: var(--c-atmo);
+  box-shadow: 0 0 10px 1px var(--c-atmo);
+  animation: s-boot-standby-ping 1.6s var(--ease-out) infinite;
+}
+
+@keyframes s-boot-standby-ping {
+  0% { box-shadow: 0 0 0 0 rgba(111, 195, 255, 0.7); }
+  70%, 100% { box-shadow: 0 0 0 18px rgba(111, 195, 255, 0); }
+}
+
+.s-boot__standby-label b {
+  margin-inline: 0.5em;
+  font-weight: 400;
+  color: var(--c-atmo);
+}
+
+/* indeterminate scan line */
+.s-boot__standby-scan {
+  position: relative;
+  width: 140px;
+  height: 1px;
+  overflow: hidden;
+  background: rgba(244, 246, 251, 0.1);
+}
+
+.s-boot__standby-scan::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, var(--c-atmo), transparent);
+  animation: s-boot-standby-scan 1.4s var(--ease-in-out) infinite;
+}
+
+@keyframes s-boot-standby-scan {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+
+/* ---- Fairing halves ------------------------------------------------------ */
+.s-boot__panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50.5%; /* overlap so no hairline of the page shows before separation */
+  background: var(--c-void);
+  will-change: transform;
+}
+
+.s-boot__panel--top {
+  top: 0;
+  background:
+    radial-gradient(120% 90% at 50% 120%, rgba(31, 107, 255, 0.07), transparent 60%),
+    var(--c-void);
+}
+
+.s-boot__panel--bottom {
+  bottom: 0;
+  background:
+    radial-gradient(120% 90% at 50% -20%, rgba(31, 107, 255, 0.07), transparent 60%),
+    var(--c-void);
+}
+
+/* Inner edges of the halves: lit as the fairing separates */
+.s-boot__edge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(199, 236, 255, 0.85) 18%, #fff 50%, rgba(199, 236, 255, 0.85) 82%, transparent);
+  box-shadow: 0 0 18px 2px rgba(111, 195, 255, 0.5);
+}
+
+.s-boot__panel--top .s-boot__edge {
+  bottom: 0;
+}
+
+.s-boot__panel--bottom .s-boot__edge {
+  top: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 180, 107, 0.7) 22%, #fff4e8 50%, rgba(255, 180, 107, 0.7) 78%, transparent);
+  box-shadow: 0 0 22px 3px rgba(255, 107, 44, 0.45); /* lit by the plume below */
+}
+
+/* Separation seam: a line of light across the middle */
+.s-boot__seam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  margin-top: -0.5px;
+  background: linear-gradient(90deg, transparent, var(--c-ion) 18%, #fff 50%, var(--c-ion) 82%, transparent);
+  box-shadow: 0 0 22px 3px rgba(111, 195, 255, 0.6), 0 0 80px 10px rgba(31, 107, 255, 0.35);
+  transform: scaleX(0);
+  opacity: 0;
+}
+
+/* Ignition bloom from below — the only fire on the page this early */
+.s-boot__flash {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(55% 46% at 50% 100%, rgba(255, 180, 107, 0.5), rgba(255, 107, 44, 0.2) 45%, transparent 75%),
+    radial-gradient(40% 30% at 50% 50%, rgba(255, 180, 107, 0.1), transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---- HUD layer ------------------------------------------------------------ */
+.s-boot__ui {
+  --s-boot-inset: clamp(16px, 2.2vw, 32px);
+  position: absolute;
+  inset: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.s-boot__corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 0 solid var(--c-line-strong);
+}
+
+.s-boot__corner--tl { top: var(--s-boot-inset); left: var(--s-boot-inset); border-width: 1px 0 0 1px; }
+.s-boot__corner--tr { top: var(--s-boot-inset); right: var(--s-boot-inset); border-width: 1px 1px 0 0; }
+.s-boot__corner--bl { bottom: var(--s-boot-inset); left: var(--s-boot-inset); border-width: 0 0 1px 1px; }
+.s-boot__corner--br { bottom: var(--s-boot-inset); right: var(--s-boot-inset); border-width: 0 1px 1px 0; }
+
+.s-boot__top {
+  position: absolute;
+  top: calc(var(--s-boot-inset) + 22px);
+  left: calc(var(--s-boot-inset) + 24px);
+  right: calc(var(--s-boot-inset) + 24px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  color: var(--c-text-dim);
+}
+
+.s-boot__logo {
+  width: clamp(76px, 6.4vw, 96px);
+  height: auto;
+  color: var(--c-text);
+}
+
+.s-boot__utc b {
+  margin-left: 0.8em;
+  font-weight: 400;
+  color: var(--c-text);
+}
+
+/* ---- Countdown ------------------------------------------------------------- */
+.s-boot__center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.s-boot__center > * {
+  grid-area: 1 / 1;
+}
+
+.s-boot__count {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(14px, 2.4vh, 26px);
+  margin-top: calc(-1 * clamp(20px, 4vh, 44px)); /* optical centre: kicker sits above */
+}
+
+.s-boot__kicker {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  color: var(--c-text-dim);
+  letter-spacing: var(--tracking-label);
+}
+
+.s-boot__kicker::before,
+.s-boot__kicker::after {
+  content: '';
+  width: 28px;
+  height: 1px;
+  background: var(--c-line-strong);
+}
+
+/* Dial: a radial progress ring that holds the countdown */
+.s-boot__dial {
+  --s-boot-dial: clamp(220px, min(36vh, 64vw), 330px);
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--s-boot-dial);
+  height: var(--s-boot-dial);
+}
+
+.s-boot__ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.s-boot__ring-ticks line {
+  stroke: rgba(244, 246, 251, 0.26);
+  stroke-width: 0.6;
+}
+
+.s-boot__ring-track {
+  fill: none;
+  stroke: rgba(244, 246, 251, 0.1);
+  stroke-width: 0.7;
+}
+
+.s-boot__ring-fill {
+  fill: none;
+  stroke: var(--c-atmo);
+  stroke-width: 1.2;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transform: rotate(-90deg);
+  transform-origin: 100px 100px;
+  filter: drop-shadow(0 0 3px rgba(111, 195, 255, 0.9));
+}
+
+.s-boot__digits {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  margin-left: -0.08em;
+  font-family: var(--font-display);
+  font-stretch: 120%;
+  font-weight: 650;
+  font-size: calc(var(--s-boot-dial) * 0.42);
+  line-height: 0.8;
+  letter-spacing: 0;
+}
+
+.s-boot__t {
+  margin-top: 0.06em;
+  margin-right: 0.06em;
+  font-size: 0.32em;
+  color: var(--c-text-faint);
+}
+
+.s-boot__mask {
+  display: block;
+  overflow: hidden;
+  padding: 0.04em 0.02em;
+}
+
+.s-boot__digit {
+  display: block;
+  min-width: 0.7em;
+  text-align: center;
+}
+
+.s-boot__ignition {
+  margin: 0;
+  padding-left: 0.16em; /* balance trailing tracking */
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 700;
+  font-size: clamp(2.6rem, min(10vw, 14vh), 8.5rem);
+  line-height: 1;
+  letter-spacing: 0.16em;
+  /* white-hot core, fire in the bloom */
+  color: #fff4e8;
+  text-shadow:
+    0 0 2px rgba(255, 214, 170, 0.9),
+    0 0 18px rgba(255, 140, 64, 0.85),
+    0 0 56px rgba(255, 107, 44, 0.6),
+    0 0 140px rgba(255, 107, 44, 0.38);
+  opacity: 0;
+}
+
+/* ---- Boot log + meter ------------------------------------------------------ */
+.s-boot__bottom {
+  position: absolute;
+  left: calc(var(--s-boot-inset) + 24px);
+  right: calc(var(--s-boot-inset) + 24px);
+  bottom: calc(var(--s-boot-inset) + 34px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.s-boot__log {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  line-height: 2;
+  white-space: pre;
+}
+
+.s-boot__log li {
+  min-height: 2em;
+}
+
+.s-boot__label {
+  color: rgba(244, 246, 251, 0.55);
+}
+
+.s-boot__status {
+  color: var(--c-text);
+}
+
+.s-boot__log li.is-head .s-boot__label {
+  color: var(--c-text);
+}
+
+.s-boot__log li.is-typing::after {
+  content: '';
+  display: inline-block;
+  width: 0.62em;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: -0.18em;
+  background: var(--c-atmo);
+}
+
+.s-boot__meter {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  color: rgba(244, 246, 251, 0.55);
+}
+
+.s-boot__pct {
+  font-family: var(--font-display);
+  font-stretch: 120%;
+  font-weight: 600;
+  font-size: clamp(1.6rem, 2.6vw, 2.4rem);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--c-text);
+}
+
+.s-boot__bar {
+  position: absolute;
+  left: calc(var(--s-boot-inset) + 24px);
+  right: calc(var(--s-boot-inset) + 24px);
+  bottom: calc(var(--s-boot-inset) + 18px);
+  height: 1px;
+  background: var(--c-line);
+}
+
+.s-boot__bar span {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--c-atmo-deep), var(--c-atmo));
+  box-shadow: 0 0 10px rgba(111, 195, 255, 0.6);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.s-boot__skip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--s-boot-inset) - 2px);
+  margin: 0;
+  transform: translateX(-50%);
+  font-size: 0.62rem;
+  letter-spacing: var(--tracking-label);
+  color: rgba(244, 246, 251, 0.55);
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .s-boot__top {
+    top: calc(var(--s-boot-inset) + 16px);
+    left: calc(var(--s-boot-inset) + 14px);
+    right: calc(var(--s-boot-inset) + 14px);
+  }
+
+  .s-boot__bottom {
+    left: calc(var(--s-boot-inset) + 14px);
+    right: calc(var(--s-boot-inset) + 14px);
+    bottom: calc(var(--s-boot-inset) + 34px);
+  }
+
+  .s-boot__bar {
+    left: calc(var(--s-boot-inset) + 14px);
+    right: calc(var(--s-boot-inset) + 14px);
+  }
+
+  .s-boot__bottom {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .s-boot__meter {
+    justify-content: flex-end;
+  }
+
+  .s-boot__log {
+    font-size: 0.64rem;
+  }
+}

@@ -286,6 +286,12 @@
   animation: none;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .status::before {
+    animation: none;
+  }
+}
+
 @keyframes sxsi-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }

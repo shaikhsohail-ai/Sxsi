@@ -1,5 +1,279 @@
-<section id="fleet" class="s-fleet section" aria-label="The Fleet">
-  <div class="container">
-    <p class="eyebrow">The Fleet</p>
+<section id="fleet" class="s-fleet section" aria-labelledby="fleet-title">
+  <!-- Line-art cores, reused by the vehicle selector and the no-WebGL fallback -->
+  <svg class="s-fleet__sprite" width="0" height="0" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="fleet-sym-nova" viewBox="0 0 80 80">
+        <circle vector-effect="non-scaling-stroke" cx="40" cy="61" r="12.5" />
+        <path vector-effect="non-scaling-stroke" d="M40 48.5 50.8 54.8V67.2L40 73.5 29.2 67.2V54.8Z" />
+        <path vector-effect="non-scaling-stroke" d="M29.2 54.8h21.6L40 73.5Z M40 48.5v12.5 M29.2 67.2 40 61l10.8 6.2" opacity=".55" />
+        <ellipse vector-effect="non-scaling-stroke" cx="40" cy="61" rx="19" ry="4.6" transform="rotate(-14 40 61)" />
+        <circle vector-effect="non-scaling-stroke" cx="40" cy="61" r="1.6" fill="currentColor" stroke="none" />
+      </symbol>
+      <symbol id="fleet-sym-vector" viewBox="0 0 80 80">
+        <path vector-effect="non-scaling-stroke" d="M40 30 49.5 55 40 78 30.5 55Z" />
+        <path vector-effect="non-scaling-stroke" d="M30.5 55h19 M40 30v48" opacity=".5" />
+        <path vector-effect="non-scaling-stroke" d="M40 38 45 55 40 70 35 55Z" opacity=".55" />
+        <ellipse vector-effect="non-scaling-stroke" cx="40" cy="55" rx="19" ry="5" transform="rotate(24 40 55)" />
+        <ellipse vector-effect="non-scaling-stroke" cx="40" cy="55" rx="19" ry="5" transform="rotate(-24 40 55)" opacity=".7" />
+        <circle vector-effect="non-scaling-stroke" cx="57.4" cy="62.6" r="1.6" fill="currentColor" stroke="none" />
+        <circle vector-effect="non-scaling-stroke" cx="23.4" cy="62.2" r="1.6" fill="currentColor" stroke="none" />
+        <path vector-effect="non-scaling-stroke" d="M40 30v-6 M37.5 26.5 40 23l2.5 3.5" />
+      </symbol>
+      <symbol id="fleet-sym-apogee" viewBox="0 0 80 80">
+        <path vector-effect="non-scaling-stroke" d="M8.7 60.65A32 7.4 -12 0 0 71.3 47.35A32 7.4 -12 0 0 8.7 60.65Z" opacity=".7" />
+        <circle vector-effect="non-scaling-stroke" cx="40" cy="54" r="16.5" fill="#000" />
+        <ellipse vector-effect="non-scaling-stroke" cx="40" cy="54" rx="16.5" ry="5.2" opacity=".45" />
+        <ellipse vector-effect="non-scaling-stroke" cx="40" cy="54" rx="6.4" ry="16.5" opacity=".45" />
+        <path vector-effect="non-scaling-stroke" d="M33.4 50.6 40 46l6.6 4.6-2.5 7.6h-8.2Z" opacity=".85" />
+        <path vector-effect="non-scaling-stroke" d="M8.7 60.65A32 7.4 -12 0 0 71.3 47.35" />
+        <path vector-effect="non-scaling-stroke" d="M14.57 59.41A26 5.8 -12 0 0 65.43 48.59" opacity=".5" />
+        <circle vector-effect="non-scaling-stroke" cx="40" cy="54" r="1.9" fill="currentColor" stroke="none" />
+      </symbol>
+      <symbol id="fleet-sym-zenith" viewBox="0 0 80 80">
+        <path vector-effect="non-scaling-stroke" d="M40 4v21 M40 63v15" stroke-dasharray="2 3" opacity=".7" />
+        <ellipse vector-effect="non-scaling-stroke" cx="40" cy="45" rx="38" ry="5" opacity=".6" />
+        <path vector-effect="non-scaling-stroke" d="M22.5 45a17.5 17.5 0 0 1 35 0" opacity=".55" />
+        <circle vector-effect="non-scaling-stroke" cx="40" cy="45" r="13" fill="#000" />
+        <path vector-effect="non-scaling-stroke" d="M2 45A38 5 0 0 0 78 45" />
+        <path vector-effect="non-scaling-stroke" d="M17 45A23 3.4 0 0 0 63 45" opacity=".6" />
+        <rect x="47" y="58" width="25" height="4.5" fill="currentColor" stroke="none" opacity=".9" />
+      </symbol>
+    </defs>
+  </svg>
+
+  <header class="s-fleet__head container">
+    <p class="eyebrow s-fleet__eyebrow" data-fleet-reveal>04 — The fleet</p>
+    <div class="s-fleet__head-grid">
+      <h2 id="fleet-title" class="s-fleet__title h2" data-fleet-reveal>The Fleet</h2>
+      <div class="s-fleet__head-side" data-fleet-reveal>
+        <p class="lead s-fleet__intro">
+          Four vehicles, one mission: carry intelligence higher. Each is being designed for a different altitude — from the device
+          in your hand to the edge of the known map.
+        </p>
+        <dl class="s-fleet__tally hud">
+          <div><dt>Vehicles</dt><dd class="hud-value">04</dd></div>
+          <div><dt>In development</dt><dd class="hud-value">01</dd></div>
+          <div><dt>Planned</dt><dd class="hud-value">02</dd></div>
+          <div><dt>Classified</dt><dd class="hud-value s-fleet__tally-hot">01</dd></div>
+        </dl>
+      </div>
+    </div>
+  </header>
+
+  <div class="s-fleet__stage" data-fleet-stage>
+    <!-- Hologram projector (decorative) -->
+    <div class="s-fleet__viz" data-fleet-viz aria-hidden="true">
+      <div class="s-fleet__glow"></div>
+      <div class="s-fleet__fallback" data-fleet-fallback>
+        <svg class="s-fleet__fb-art" viewBox="0 0 80 80" data-vehicle="nova"><use href="#fleet-sym-nova" /></svg>
+        <svg class="s-fleet__fb-art" viewBox="0 0 80 80" data-vehicle="vector"><use href="#fleet-sym-vector" /></svg>
+        <svg class="s-fleet__fb-art" viewBox="0 0 80 80" data-vehicle="apogee"><use href="#fleet-sym-apogee" /></svg>
+        <svg class="s-fleet__fb-art" viewBox="0 0 80 80" data-vehicle="zenith"><use href="#fleet-sym-zenith" /></svg>
+      </div>
+      <canvas class="s-fleet__canvas" data-fleet-canvas></canvas>
+      <div class="s-fleet__scan"></div>
+      <!-- Layout anchor: centre = hologram focus, width = one world unit (read by scene.js) -->
+      <span class="s-fleet__anchor" data-fleet-anchor></span>
+
+      <!-- Focus frame around the active core; resizes per vehicle -->
+      <div class="s-fleet__frame ticks" data-fleet-frame>
+        <span class="s-fleet__frame-tag s-fleet__frame-tag--tl">Holo-preview <span data-fleet-frame-num>01</span></span>
+        <span class="s-fleet__frame-tag s-fleet__frame-tag--tr">ROT <span data-fleet-rot>000.0</span>°</span>
+        <span class="s-fleet__frame-tag s-fleet__frame-tag--bl">
+          <span class="s-fleet__tag-lock">Core lock</span>
+          <span class="s-fleet__tag-drag"><span class="s-fleet__tag-arrows">&larr;&rarr;</span> Drag to rotate</span>
+        </span>
+        <span class="s-fleet__frame-tag s-fleet__frame-tag--br">Simulated</span>
+        <span class="s-fleet__cross"></span>
+        <span class="s-fleet__redact s-fleet__redact--a"><span>Redacted</span></span>
+        <span class="s-fleet__redact s-fleet__redact--b"><span>Clearance required</span></span>
+        <span class="s-fleet__redact s-fleet__redact--c"></span>
+      </div>
+    </div>
+
+    <div class="s-fleet__hudbar hud" aria-hidden="true">
+      <span class="s-fleet__hudbar-item">Fleet registry</span>
+      <span class="s-fleet__hudbar-item s-fleet__hudbar-count">
+        <span class="hud-value" data-fleet-count>01</span><span class="s-fleet__hudbar-of">/ 04</span>
+      </span>
+      <span class="s-fleet__hudbar-item s-fleet__hudbar-sim">Hologram feed · Simulated</span>
+    </div>
+
+    <!-- Vehicle selector: a relative-scale line-up. JS upgrades it to an ARIA tablist. -->
+    <div class="s-fleet__selector" data-fleet-selector>
+      <div class="s-fleet__tabs" data-fleet-tabs>
+        <button class="s-fleet__tab" type="button" data-fleet-tab="0" id="fleet-tab-nova" aria-controls="fleet-nova">
+          <svg class="s-fleet__tab-art" viewBox="0 0 80 80" aria-hidden="true" focusable="false"><use href="#fleet-sym-nova" /></svg>
+          <span class="s-fleet__tab-meta">
+            <span class="s-fleet__tab-num">01</span>
+            <span class="s-fleet__tab-name">Nova</span>
+            <span class="s-fleet__tab-status">In development</span>
+          </span>
+        </button>
+        <button class="s-fleet__tab" type="button" data-fleet-tab="1" id="fleet-tab-vector" aria-controls="fleet-vector">
+          <svg class="s-fleet__tab-art" viewBox="0 0 80 80" aria-hidden="true" focusable="false"><use href="#fleet-sym-vector" /></svg>
+          <span class="s-fleet__tab-meta">
+            <span class="s-fleet__tab-num">02</span>
+            <span class="s-fleet__tab-name">Vector</span>
+            <span class="s-fleet__tab-status">Planned</span>
+          </span>
+        </button>
+        <button class="s-fleet__tab" type="button" data-fleet-tab="2" id="fleet-tab-apogee" aria-controls="fleet-apogee">
+          <svg class="s-fleet__tab-art" viewBox="0 0 80 80" aria-hidden="true" focusable="false"><use href="#fleet-sym-apogee" /></svg>
+          <span class="s-fleet__tab-meta">
+            <span class="s-fleet__tab-num">03</span>
+            <span class="s-fleet__tab-name">Apogee</span>
+            <span class="s-fleet__tab-status">Planned</span>
+          </span>
+        </button>
+        <button class="s-fleet__tab s-fleet__tab--classified" type="button" data-fleet-tab="3" id="fleet-tab-zenith" aria-controls="fleet-zenith">
+          <svg class="s-fleet__tab-art" viewBox="0 0 80 80" aria-hidden="true" focusable="false"><use href="#fleet-sym-zenith" /></svg>
+          <span class="s-fleet__tab-meta">
+            <span class="s-fleet__tab-num">04</span>
+            <span class="s-fleet__tab-name">Zenith</span>
+            <span class="s-fleet__tab-status">Classified</span>
+          </span>
+        </button>
+      </div>
+      <div class="s-fleet__rail" aria-hidden="true"><span class="s-fleet__rail-fill" data-fleet-rail></span></div>
+      <p class="s-fleet__selector-label hud" aria-hidden="true">Relative scale <span>·</span> Illustrative</p>
+    </div>
+
+    <!-- Vehicles: all copy is static; JS shows one at a time -->
+    <div class="s-fleet__panels" data-fleet-panels>
+      <div class="s-fleet__panel" id="fleet-nova" data-fleet-panel="0" data-vehicle="nova">
+        <p class="s-fleet__index" aria-hidden="true"><span class="s-fleet__index-num" data-fleet-part="index">01</span></p>
+        <div class="s-fleet__copy">
+          <p class="s-fleet__kicker hud" data-fleet-part="fade">Vehicle 01 <span aria-hidden="true">·</span> Low orbit</p>
+          <h3 class="s-fleet__name" id="fleet-name-nova" data-fleet-part="name">Nova</h3>
+          <p class="s-fleet__role" data-fleet-part="fade">Light enough to fly anywhere.</p>
+          <p class="s-fleet__desc body-copy" data-fleet-part="fade">
+            The compact vehicle of the fleet, designed to run on phones, laptops and the edge — where every millisecond and every
+            watt counts. Small airframe, fast turnaround, built to launch often.
+          </p>
+        </div>
+        <div class="s-fleet__spec" data-fleet-part="spec">
+          <p class="s-fleet__spec-title hud"><span>Spec sheet</span><span>SX-01 · Nova</span></p>
+          <dl class="s-fleet__spec-list">
+            <div class="s-fleet__spec-row"><dt>Class</dt><dd>Compact</dd></div>
+            <div class="s-fleet__spec-row"><dt>Context</dt><dd>Standard</dd></div>
+            <div class="s-fleet__spec-row"><dt>Modalities</dt><dd>Text · Vision</dd></div>
+            <div class="s-fleet__spec-row"><dt>Autonomy</dt><dd>Assist</dd></div>
+            <div class="s-fleet__spec-row"><dt>Latency class</dt><dd>Real-time</dd></div>
+            <div class="s-fleet__spec-row s-fleet__spec-row--status">
+              <dt>Status</dt>
+              <dd><span class="status">In development</span></dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="s-fleet__panel" id="fleet-vector" data-fleet-panel="1" data-vehicle="vector">
+        <p class="s-fleet__index" aria-hidden="true"><span class="s-fleet__index-num" data-fleet-part="index">02</span></p>
+        <div class="s-fleet__copy">
+          <p class="s-fleet__kicker hud" data-fleet-part="fade">Vehicle 02 <span aria-hidden="true">·</span> Transfer orbit</p>
+          <h3 class="s-fleet__name" id="fleet-name-vector" data-fleet-part="name">Vector</h3>
+          <p class="s-fleet__role" data-fleet-part="fade">Intelligence with a heading.</p>
+          <p class="s-fleet__desc body-copy" data-fleet-part="fade">
+            An agentic vehicle being designed to plan, use tools and carry multi-step tasks through to completion — with a human in
+            the loop for every critical burn. Thought, given direction.
+          </p>
+        </div>
+        <div class="s-fleet__spec" data-fleet-part="spec">
+          <p class="s-fleet__spec-title hud"><span>Spec sheet</span><span>SX-02 · Vector</span></p>
+          <dl class="s-fleet__spec-list">
+            <div class="s-fleet__spec-row"><dt>Class</dt><dd>Agentic</dd></div>
+            <div class="s-fleet__spec-row"><dt>Context</dt><dd>Long</dd></div>
+            <div class="s-fleet__spec-row"><dt>Modalities</dt><dd>Text · Vision · Tools</dd></div>
+            <div class="s-fleet__spec-row"><dt>Autonomy</dt><dd>Supervised</dd></div>
+            <div class="s-fleet__spec-row"><dt>Latency class</dt><dd>Interactive</dd></div>
+            <div class="s-fleet__spec-row s-fleet__spec-row--status">
+              <dt>Status</dt>
+              <dd><span class="status status--idle">Planned</span></dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="s-fleet__panel" id="fleet-apogee" data-fleet-panel="2" data-vehicle="apogee">
+        <p class="s-fleet__index" aria-hidden="true"><span class="s-fleet__index-num" data-fleet-part="index">03</span></p>
+        <div class="s-fleet__copy">
+          <p class="s-fleet__kicker hud" data-fleet-part="fade">Vehicle 03 <span aria-hidden="true">·</span> High orbit</p>
+          <h3 class="s-fleet__name" id="fleet-name-apogee" data-fleet-part="name">Apogee</h3>
+          <p class="s-fleet__role" data-fleet-part="fade">Frontier reasoning at the highest point.</p>
+          <p class="s-fleet__desc body-copy" data-fleet-part="fade">
+            Our planned flagship: a frontier reasoning system for the hardest problems in science, engineering and code. Built to
+            take its time when it matters — and to show its work when it lands.
+          </p>
+        </div>
+        <div class="s-fleet__spec" data-fleet-part="spec">
+          <p class="s-fleet__spec-title hud"><span>Spec sheet</span><span>SX-03 · Apogee</span></p>
+          <dl class="s-fleet__spec-list">
+            <div class="s-fleet__spec-row"><dt>Class</dt><dd>Frontier</dd></div>
+            <div class="s-fleet__spec-row"><dt>Context</dt><dd>Extended</dd></div>
+            <div class="s-fleet__spec-row"><dt>Modalities</dt><dd>Text · Vision · Audio · Code</dd></div>
+            <div class="s-fleet__spec-row"><dt>Autonomy</dt><dd>Long-horizon</dd></div>
+            <div class="s-fleet__spec-row"><dt>Latency class</dt><dd>Deliberate</dd></div>
+            <div class="s-fleet__spec-row s-fleet__spec-row--status">
+              <dt>Status</dt>
+              <dd><span class="status status--idle">Planned</span></dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="s-fleet__panel s-fleet__panel--classified" id="fleet-zenith" data-fleet-panel="3" data-vehicle="zenith">
+        <p class="s-fleet__index" aria-hidden="true"><span class="s-fleet__index-num" data-fleet-part="index">04</span></p>
+        <div class="s-fleet__copy">
+          <p class="s-fleet__kicker hud" data-fleet-part="fade">
+            Vehicle 04 <span aria-hidden="true">·</span> Beyond orbit <span aria-hidden="true">·</span>
+            <span class="s-fleet__kicker-hot">Classified</span>
+          </p>
+          <h3 class="s-fleet__name" id="fleet-name-zenith" data-fleet-part="name">Zenith</h3>
+          <p class="s-fleet__role" data-fleet-part="fade">Beyond the edge of the map.</p>
+          <p class="s-fleet__desc body-copy" data-fleet-part="fade">
+            Long-range research toward superintelligence — the destination the rest of the fleet is built to reach. Safety first,
+            then altitude. Flight profile
+            <span class="s-fleet__bar s-fleet__bar--inline"><span class="sr-only">redacted</span></span>. Further details are
+            classified.
+          </p>
+        </div>
+        <div class="s-fleet__spec" data-fleet-part="spec">
+          <p class="s-fleet__spec-title hud"><span>Spec sheet</span><span>SX-04 · Zenith</span></p>
+          <dl class="s-fleet__spec-list">
+            <div class="s-fleet__spec-row"><dt>Class</dt><dd>Research</dd></div>
+            <div class="s-fleet__spec-row">
+              <dt>Context</dt>
+              <dd><span class="s-fleet__bar"><span class="sr-only">Redacted</span></span></dd>
+            </div>
+            <div class="s-fleet__spec-row">
+              <dt>Modalities</dt>
+              <dd><span class="s-fleet__bar s-fleet__bar--long"><span class="sr-only">Redacted</span></span></dd>
+            </div>
+            <div class="s-fleet__spec-row">
+              <dt>Autonomy</dt>
+              <dd><span class="s-fleet__bar"><span class="sr-only">Redacted</span></span></dd>
+            </div>
+            <div class="s-fleet__spec-row">
+              <dt>Latency class</dt>
+              <dd><span class="s-fleet__bar s-fleet__bar--short"><span class="sr-only">Redacted</span></span></dd>
+            </div>
+            <div class="s-fleet__spec-row s-fleet__spec-row--status">
+              <dt>Status</dt>
+              <dd><span class="status status--live">Classified</span></dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <p class="s-fleet__cue hud" aria-hidden="true" data-fleet-cue>
+      <span class="s-fleet__cue-track"><span class="s-fleet__cue-dot"></span></span>
+      <span>Scroll to advance</span>
+    </p>
   </div>
+
+  <p class="s-fleet__note container hud">
+    Vehicle designations, specifications and statuses describe our roadmap. They are aspirational and will change as we build.
+  </p>
 </section>

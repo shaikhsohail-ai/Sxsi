@@ -1,5 +1,226 @@
-<section id="manifest" class="s-manifest section" aria-label="Launch Manifest">
-  <div class="container">
-    <p class="eyebrow">Launch Manifest</p>
+<section id="manifest" class="s-manifest section" aria-labelledby="manifest-title" data-manifest>
+  <!--
+    LAUNCH MANIFEST — the roadmap. This markup is the single source of truth:
+    add / edit an <li data-mission> and the script derives everything else
+    (the mission patch, the trajectory, the index, the tallies).
+
+      data-number   mission number, e.g. "006"
+      data-status   complete | active | planned | tbd
+      data-target   (optional) ISO date for a live T− countdown. The mission whose
+                    number matches NEXT_MISSION in src/config.js takes its date from there.
+      data-motif    (optional) patch motif: sunrise | plume | arc | orbit | network | comet
+                    — leave it out and the patch picks one from the mission data.
+
+    The Kármán line ("space begins") is drawn just before the first mission that
+    is still ahead (planned / tbd) — it moves on its own as missions are flown.
+  -->
+  <div class="s-manifest__frame" data-manifest-frame>
+    <!-- Decorative sky: stars + planet limb (flight mode moves them) -->
+    <div class="s-manifest__sky" aria-hidden="true">
+      <div class="s-manifest__stars" data-manifest-stars></div>
+      <div class="s-manifest__beyond" data-manifest-beyond></div>
+      <!-- The planet falls away as the flight climbs; the sun rises over its limb -->
+      <div class="s-manifest__earth" data-manifest-planet>
+        <span class="s-manifest__airglow"></span>
+        <svg class="s-manifest__planet" viewBox="0 0 1000 300" preserveAspectRatio="none" focusable="false">
+          <defs>
+            <radialGradient id="manifest-planet-fill" cx="500" cy="40" r="700" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stop-color="#0d2446" />
+              <stop offset=".18" stop-color="#050d1c" />
+              <stop offset=".5" stop-color="#000" />
+            </radialGradient>
+            <filter id="manifest-planet-glow" x="-10%" y="-60%" width="120%" height="220%">
+              <feGaussianBlur stdDeviation="9" />
+            </filter>
+          </defs>
+          <path class="s-manifest__planet-haze" d="M-200 300 Q 500 -50 1200 300" filter="url(#manifest-planet-glow)" />
+          <path class="s-manifest__planet-body" d="M-200 300 Q 500 -50 1200 300 Z" fill="url(#manifest-planet-fill)" />
+          <path class="s-manifest__planet-limb" d="M-200 300 Q 500 -50 1200 300" />
+        </svg>
+        <span class="s-manifest__sun" data-manifest-sun><span class="s-manifest__sun-flare"></span></span>
+      </div>
+    </div>
+
+    <div class="s-manifest__track" data-manifest-track>
+      <header class="s-manifest__intro container">
+        <p class="eyebrow" data-manifest-reveal>06 — Launch manifest</p>
+        <h2 id="manifest-title" class="s-manifest__title h2" data-manifest-reveal>Launch <span>manifest</span></h2>
+        <p class="lead s-manifest__lead" data-manifest-reveal>
+          Every mission we intend to fly, in order. One flown, one on the pad, three still on the drawing board. Windows are
+          targets, not promises — the destination is fixed.
+        </p>
+        <dl class="s-manifest__tally hud" data-manifest-reveal data-manifest-tally>
+          <div><dt>Missions</dt><dd class="hud-value" data-tally="all">05</dd></div>
+          <div><dt>Flown</dt><dd class="hud-value" data-tally="complete">01</dd></div>
+          <div><dt>In progress</dt><dd class="hud-value s-manifest__tally-hot" data-tally="active">01</dd></div>
+          <div><dt>Ahead</dt><dd class="hud-value" data-tally="ahead">03</dd></div>
+        </dl>
+        <p class="s-manifest__cue hud" aria-hidden="true" data-manifest-reveal>
+          <span class="s-manifest__cue-line"></span> Scroll to ascend
+        </p>
+      </header>
+
+      <!-- Pad marker where the trajectory begins (decorative) -->
+      <div class="s-manifest__pad" aria-hidden="true">
+        <span class="s-manifest__pad-mark"></span>
+        <span class="s-manifest__pad-label hud">LC-01 <span>· T−0</span></span>
+      </div>
+
+      <!-- Trajectory (decorative; drawn by the script) -->
+      <svg class="s-manifest__path" data-manifest-path aria-hidden="true" focusable="false"></svg>
+
+      <ol class="s-manifest__list" role="list" data-manifest-list>
+        <li class="s-manifest__mission" data-mission data-number="001" data-status="complete" data-motif="sunrise">
+          <article class="s-manifest__item" aria-labelledby="manifest-001-name">
+            <div class="s-manifest__patch-slot" data-mission-patch>
+              <div class="s-manifest__patch s-manifest__patch--static" role="img" aria-label="Mission 001 patch: First Light">
+                <span class="s-manifest__patch-num">001</span>
+              </div>
+            </div>
+            <div class="s-manifest__card">
+              <p class="s-manifest__meta">
+                <span class="s-manifest__num hud">Mission <span class="hud-value">001</span></span>
+                <span class="status s-manifest__status s-manifest__status--complete">Complete</span>
+              </p>
+              <h3 id="manifest-001-name" class="s-manifest__name h3" data-mission-name>First Light</h3>
+              <p class="s-manifest__window hud">Flown <span class="hud-value">Q4 2026</span></p>
+              <p class="s-manifest__objective">sxsi.ai goes live and the mission is announced. The first signal leaves the pad.</p>
+              <dl class="s-manifest__specs hud">
+                <div><dt>Payload</dt><dd>The mission</dd></div>
+                <div><dt>Destination</dt><dd>Pad · T−0</dd></div>
+              </dl>
+            </div>
+          </article>
+        </li>
+
+        <li class="s-manifest__mission" data-mission data-number="002" data-status="active" data-motif="plume" data-target="2027-01-01T00:00:00Z">
+          <article class="s-manifest__item" aria-labelledby="manifest-002-name">
+            <div class="s-manifest__patch-slot" data-mission-patch>
+              <div class="s-manifest__patch s-manifest__patch--static" role="img" aria-label="Mission 002 patch: Ignition">
+                <span class="s-manifest__patch-num">002</span>
+              </div>
+            </div>
+            <div class="s-manifest__card">
+              <p class="s-manifest__meta">
+                <span class="s-manifest__num hud">Mission <span class="hud-value">002</span></span>
+                <span class="status status--live s-manifest__status">In progress</span>
+              </p>
+              <h3 id="manifest-002-name" class="s-manifest__name h3" data-mission-name>Ignition</h3>
+              <p class="s-manifest__window hud">
+                Target <time class="hud-value" datetime="2027-01-01" data-mission-date>01 Jan 2027</time>
+                <span class="s-manifest__countdown" data-mission-countdown hidden></span>
+              </p>
+              <p class="s-manifest__objective">Assemble the crew. Secure the compute. Light the engines.</p>
+              <dl class="s-manifest__specs hud">
+                <div><dt>Payload</dt><dd>Crew + compute</dd></div>
+                <div><dt>Destination</dt><dd>Max-Q</dd></div>
+              </dl>
+            </div>
+          </article>
+        </li>
+
+        <li class="s-manifest__mission" data-mission data-number="003" data-status="planned" data-motif="arc">
+          <article class="s-manifest__item" aria-labelledby="manifest-003-name">
+            <div class="s-manifest__patch-slot" data-mission-patch>
+              <div class="s-manifest__patch s-manifest__patch--static" role="img" aria-label="Mission 003 patch: Ascent">
+                <span class="s-manifest__patch-num">003</span>
+              </div>
+            </div>
+            <div class="s-manifest__card">
+              <p class="s-manifest__meta">
+                <span class="s-manifest__num hud">Mission <span class="hud-value">003</span></span>
+                <span class="status status--idle s-manifest__status">Planned</span>
+              </p>
+              <h3 id="manifest-003-name" class="s-manifest__name h3" data-mission-name>Ascent</h3>
+              <p class="s-manifest__window hud">Window <span class="hud-value">2027</span></p>
+              <p class="s-manifest__objective">First model flight test. Leave the pad, measure everything, publish what we learn.</p>
+              <dl class="s-manifest__specs hud">
+                <div><dt>Payload</dt><dd>First model</dd></div>
+                <div><dt>Destination</dt><dd>Kármán line</dd></div>
+              </dl>
+            </div>
+          </article>
+        </li>
+
+        <li class="s-manifest__mission" data-mission data-number="004" data-status="planned" data-motif="orbit">
+          <article class="s-manifest__item" aria-labelledby="manifest-004-name">
+            <div class="s-manifest__patch-slot" data-mission-patch>
+              <div class="s-manifest__patch s-manifest__patch--static" role="img" aria-label="Mission 004 patch: Orbit">
+                <span class="s-manifest__patch-num">004</span>
+              </div>
+            </div>
+            <div class="s-manifest__card">
+              <p class="s-manifest__meta">
+                <span class="s-manifest__num hud">Mission <span class="hud-value">004</span></span>
+                <span class="status status--idle s-manifest__status">Planned</span>
+              </p>
+              <h3 id="manifest-004-name" class="s-manifest__name h3" data-mission-name>Orbit</h3>
+              <p class="s-manifest__window hud">Window <span class="hud-value">NET 2028</span></p>
+              <p class="s-manifest__objective">Public release of the fleet. Intelligence in a stable orbit, built for anyone to reach.</p>
+              <dl class="s-manifest__specs hud">
+                <div><dt>Payload</dt><dd>The fleet</dd></div>
+                <div><dt>Destination</dt><dd>Low orbit</dd></div>
+              </dl>
+            </div>
+          </article>
+        </li>
+
+        <li class="s-manifest__mission" data-mission data-number="005" data-status="tbd" data-motif="network">
+          <article class="s-manifest__item" aria-labelledby="manifest-005-name">
+            <div class="s-manifest__patch-slot" data-mission-patch>
+              <div class="s-manifest__patch s-manifest__patch--static" role="img" aria-label="Mission 005 patch: Beyond">
+                <span class="s-manifest__patch-num">005</span>
+              </div>
+            </div>
+            <div class="s-manifest__card">
+              <p class="s-manifest__meta">
+                <span class="s-manifest__num hud">Mission <span class="hud-value">005</span></span>
+                <span class="status status--idle s-manifest__status">TBD</span>
+              </p>
+              <h3 id="manifest-005-name" class="s-manifest__name h3" data-mission-name>Beyond</h3>
+              <p class="s-manifest__window hud">Window <span class="hud-value">TBD</span></p>
+              <p class="s-manifest__objective">
+                Superintelligence research, done safely. Past the edge of the map, with safety as the flight rule — not a footnote.
+              </p>
+              <dl class="s-manifest__specs hud">
+                <div><dt>Payload</dt><dd>Open questions</dd></div>
+                <div><dt>Destination</dt><dd>Beyond orbit</dd></div>
+              </dl>
+            </div>
+          </article>
+        </li>
+      </ol>
+
+      <footer class="s-manifest__outro container">
+        <p class="s-manifest__outro-kicker hud">End of manifest <span aria-hidden="true">·</span> Rev 2026.10</p>
+        <p class="s-manifest__outro-title">The manifest<br />is open.</p>
+        <p class="body-copy s-manifest__outro-body">
+          Missions are added as they are earned. Each one arrives with its own patch, stitched from its flight data. Select any
+          patch to keep it.
+        </p>
+        <a class="btn btn--ignite s-manifest__cta" href="#join">
+          Board mission 002
+          <svg class="btn__arrow" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+        </a>
+        <p class="s-manifest__note hud">Roadmap is aspirational · windows are targets and will move</p>
+      </footer>
+    </div>
+
+    <!-- Flight HUD (decorative; only shown in the scroll-driven flight mode) -->
+    <div class="s-manifest__hud" aria-hidden="true" data-manifest-hud>
+      <p class="s-manifest__hud-title hud">06 — Launch manifest</p>
+      <p class="s-manifest__hud-tlm hud">
+        <span>ALT <span class="hud-value" data-hud-alt>0.0</span> KM</span>
+        <span>VEL <span class="hud-value" data-hud-vel>0.00</span> KM/S</span>
+        <span>DR <span class="hud-value" data-hud-dr>0</span> KM</span>
+        <span class="s-manifest__hud-sim">Simulated</span>
+      </p>
+      <div class="s-manifest__karman">
+        <span class="s-manifest__karman-label hud">Kármán line · 100 km <span>· Space begins</span></span>
+      </div>
+    </div>
+    <nav class="s-manifest__index" aria-label="Manifest missions" data-manifest-index hidden></nav>
   </div>
 </section>

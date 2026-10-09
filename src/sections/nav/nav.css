@@ -1,1 +1,866 @@
-/* nav styles — scope everything under .s-nav */
+/* ==========================================================================
+   NAV — fixed header, scroll progress trajectory, full-screen menu.
+   ========================================================================== */
+
+/* ---- Scroll progress: hairline "trajectory" with a glowing head ---------- */
+.s-nav-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  height: 1px;
+  z-index: calc(var(--z-nav) + 2);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+html:not(.js) .s-nav-progress {
+  display: none;
+}
+
+.s-nav-progress__bar {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(31, 107, 255, 0) 0%, rgba(31, 107, 255, 0.55) 55%, var(--c-atmo) 100%);
+  will-change: transform; /* positioned by nav.js (xPercent) */
+}
+
+.s-nav-progress__bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 90px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(199, 236, 255, 0), var(--c-ion));
+  box-shadow: 0 0 10px 1px rgba(111, 195, 255, 0.7);
+}
+
+/* ---- Header -------------------------------------------------------------- */
+.s-nav,
+.s-nav-menu {
+  --s-nav-dim: rgba(244, 246, 251, 0.74);
+  --s-nav-label: rgba(244, 246, 251, 0.6); /* small labels: ≥ 6:1 on black */
+}
+
+.s-nav {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: var(--z-nav);
+  height: var(--nav-h);
+  color: var(--c-text);
+  transition: transform 0.75s var(--ease-out);
+}
+
+/* Blurred black backdrop + hairline, faded in once the page has scrolled */
+.s-nav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.6));
+  border-bottom: 1px solid var(--c-line);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  backdrop-filter: blur(16px) saturate(1.3);
+  opacity: 0;
+  transition: opacity 0.6s var(--ease-out);
+  pointer-events: none;
+}
+
+.s-nav.is-scrolled::before {
+  opacity: 1;
+}
+
+/* Touch devices have no classic scrollbar, so 100vw is the true viewport
+   width. If anything on the page overflows horizontally, the layout viewport
+   widens and fixed chrome sized by inset would run off-screen; vw keeps it put. */
+@media (hover: none) and (pointer: coarse) {
+  .s-nav,
+  .s-nav-progress {
+    right: auto;
+    width: 100vw;
+  }
+}
+
+.s-nav.is-hidden {
+  transform: translate3d(0, calc(-100% - 2px), 0);
+}
+
+.s-nav.is-menu-layer {
+  z-index: calc(var(--z-menu) + 1);
+}
+
+.s-nav.is-menu-open::before {
+  opacity: 0;
+}
+
+/* Until the boot sequence hands over, the chrome waits in the dark. */
+html.js:not([data-booted]) .s-nav [data-nav-intro],
+html.js:not([data-booted]) .s-nav-progress {
+  opacity: 0;
+  animation: s-nav-failsafe 0.01s linear 6s forwards;
+}
+
+@keyframes s-nav-failsafe {
+  to {
+    opacity: 1;
+  }
+}
+
+.s-nav__bar {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  gap: clamp(20px, 2.4vw, 40px);
+}
+
+/* ---- Logo ---------------------------------------------------------------- */
+.s-nav__logo {
+  position: relative;
+  display: block;
+  flex: none;
+  padding: 10px 0;
+  color: var(--c-text);
+  transition: color 0.4s var(--ease-out);
+}
+
+.s-nav__logo-svg {
+  width: clamp(84px, 7.4vw, 108px);
+  height: auto;
+  overflow: visible;
+}
+
+.s-nav__logo:hover {
+  color: var(--c-ion);
+}
+
+/* Hover: the broken trajectory of the X slides apart along its own path,
+   as if the two orbits were passing each other. */
+.s-nav__logo-orbit {
+  transition: transform 0.7s var(--ease-out);
+}
+
+.s-nav__logo:hover .s-nav__logo-orbit--a,
+.s-nav__logo:focus-visible .s-nav__logo-orbit--a {
+  transform: translate(3.2px, -2.98px);
+}
+
+.s-nav__logo:hover .s-nav__logo-orbit--b,
+.s-nav__logo:focus-visible .s-nav__logo-orbit--b {
+  transform: translate(-3.2px, 2.98px);
+}
+
+/* ---- Primary links --------------------------------------------------------- */
+.s-nav__primary {
+  margin-left: clamp(16px, 3.2vw, 56px);
+  transition: opacity 0.4s var(--ease-out), visibility 0.4s;
+}
+
+.s-nav.is-menu-open .s-nav__primary {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.s-nav__links {
+  display: flex;
+  align-items: center;
+  gap: clamp(18px, 2.6vw, 44px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.s-nav__link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 0;
+  color: var(--s-nav-dim);
+  font-family: var(--font-display);
+  font-stretch: 116%;
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.4s var(--ease-out);
+}
+
+.s-nav__link-text {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Underline wipe: grows from the left in, leaves to the right */
+.s-nav__link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0.2em; /* compensate trailing letter-spacing */
+  bottom: 6px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.55s var(--ease-out);
+}
+
+.s-nav__link:hover,
+.s-nav__link:focus-visible,
+.s-nav__link.is-active {
+  color: var(--c-text);
+}
+
+.s-nav__link:hover::after,
+.s-nav__link:focus-visible::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* Current section: a small atmospheric marker */
+.s-nav__link::before {
+  content: '';
+  position: absolute;
+  left: -11px;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin-top: -2px;
+  background: var(--c-atmo);
+  box-shadow: 0 0 8px var(--c-atmo);
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity 0.4s var(--ease-out), transform 0.5s var(--ease-out);
+}
+
+.s-nav__link.is-active::before {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---- Tools (clock / sound / menu) ---------------------------------------- */
+.s-nav__tools {
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 2vw, 32px);
+  margin-left: auto;
+}
+
+.s-nav__clock {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.8em;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.s-nav__clock-label {
+  color: var(--s-nav-label);
+}
+
+.s-nav__clock .hud-value {
+  min-width: 8ch;
+  font-size: 0.74rem;
+}
+
+.s-nav__clock::after {
+  content: '';
+  width: 1px;
+  height: 18px;
+  margin-left: clamp(6px, 1vw, 16px);
+  align-self: center;
+  background: var(--c-line-strong);
+}
+
+/* Sound toggle ------------------------------------------------------------ */
+.s-nav__sound {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 4px;
+  color: var(--s-nav-dim);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  transition: color 0.4s var(--ease-out);
+}
+
+.s-nav__sound:hover,
+.s-nav__sound:focus-visible {
+  color: var(--c-text);
+}
+
+.s-nav__sound-state {
+  min-width: 3ch;
+  color: var(--c-text);
+}
+
+.s-nav__eq {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 14px;
+}
+
+.s-nav__eq i {
+  width: 2px;
+  height: 100%;
+  background: currentColor;
+  transform: scaleY(var(--s-nav-eq, 0.3));
+  transition: transform 0.6s var(--ease-out), background-color 0.4s;
+}
+
+/* Off: a flat, quiet waveform. Armed (remembered on, waiting for a gesture): a little taller. */
+.s-nav__eq i:nth-child(1) { --s-nav-eq: 0.18; }
+.s-nav__eq i:nth-child(2) { --s-nav-eq: 0.36; }
+.s-nav__eq i:nth-child(3) { --s-nav-eq: 0.54; }
+.s-nav__eq i:nth-child(4) { --s-nav-eq: 0.36; }
+.s-nav__eq i:nth-child(5) { --s-nav-eq: 0.18; }
+
+.s-nav__sound.is-armed .s-nav__eq i {
+  transform: scaleY(calc(var(--s-nav-eq) * 1.6));
+}
+
+.s-nav__sound.is-on .s-nav__eq i {
+  background: var(--c-atmo);
+  animation: s-nav-eq 1.1s var(--ease-in-out) infinite alternate;
+}
+
+.s-nav__sound.is-on .s-nav__eq i:nth-child(1) { animation-duration: 0.92s; animation-delay: -0.3s; }
+.s-nav__sound.is-on .s-nav__eq i:nth-child(2) { animation-duration: 1.24s; animation-delay: -0.8s; }
+.s-nav__sound.is-on .s-nav__eq i:nth-child(3) { animation-duration: 0.78s; animation-delay: -0.1s; }
+.s-nav__sound.is-on .s-nav__eq i:nth-child(4) { animation-duration: 1.36s; animation-delay: -0.6s; }
+.s-nav__sound.is-on .s-nav__eq i:nth-child(5) { animation-duration: 1.02s; animation-delay: -0.45s; }
+
+@keyframes s-nav-eq {
+  0% { transform: scaleY(0.2); }
+  45% { transform: scaleY(1); }
+  100% { transform: scaleY(0.42); }
+}
+
+/* Reduced motion: a still "live" waveform */
+@media (prefers-reduced-motion: reduce) {
+  .s-nav__sound.is-on .s-nav__eq i { animation: none; }
+  .s-nav__sound.is-on .s-nav__eq i:nth-child(1) { transform: scaleY(0.45); }
+  .s-nav__sound.is-on .s-nav__eq i:nth-child(2) { transform: scaleY(0.85); }
+  .s-nav__sound.is-on .s-nav__eq i:nth-child(3) { transform: scaleY(1); }
+  .s-nav__sound.is-on .s-nav__eq i:nth-child(4) { transform: scaleY(0.6); }
+  .s-nav__sound.is-on .s-nav__eq i:nth-child(5) { transform: scaleY(0.3); }
+}
+
+/* Menu toggle ------------------------------------------------------------- */
+.s-nav__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 44px;
+  padding: 0 0 0 6px;
+  color: var(--c-text);
+  font-family: var(--font-display);
+  font-stretch: 116%;
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.s-nav__toggle-label {
+  min-width: 5.2em;
+  text-align: right;
+}
+
+.s-nav__burger {
+  position: relative;
+  width: 26px;
+  height: 12px;
+}
+
+.s-nav__burger i {
+  position: absolute;
+  right: 0;
+  width: 100%;
+  height: 1.5px;
+  background: currentColor;
+  transition: transform 0.6s var(--ease-out), width 0.5s var(--ease-out), top 0.5s var(--ease-out);
+}
+
+.s-nav__burger i:nth-child(1) { top: 2px; }
+.s-nav__burger i:nth-child(2) { top: 8.5px; width: 62%; }
+
+.s-nav__toggle[aria-expanded='false']:hover .s-nav__burger i:nth-child(1) { width: 62%; }
+.s-nav__toggle[aria-expanded='false']:hover .s-nav__burger i:nth-child(2) { width: 100%; }
+.s-nav__toggle[aria-expanded='true']:hover .s-nav__burger { transform: rotate(90deg); }
+
+.s-nav__burger {
+  transition: transform 0.7s var(--ease-out);
+}
+
+.s-nav__toggle[aria-expanded='true'] .s-nav__burger i {
+  top: 5.25px;
+  width: 100%;
+}
+
+.s-nav__toggle[aria-expanded='true'] .s-nav__burger i:nth-child(1) { transform: rotate(32deg); }
+.s-nav__toggle[aria-expanded='true'] .s-nav__burger i:nth-child(2) { transform: rotate(-32deg); }
+
+/* Without JS: no backdrop logic, so the header simply scrolls away with the
+   page (never sits transparent over body copy). */
+html:not(.js) .s-nav {
+  position: absolute;
+}
+
+/* Without JS: no menu, no sound — the inline links carry navigation. */
+html:not(.js) .s-nav__toggle,
+html:not(.js) .s-nav__sound,
+html:not(.js) .s-nav__clock {
+  display: none;
+}
+
+/* ==========================================================================
+   Full-screen menu
+   ========================================================================== */
+.s-nav-menu {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-menu);
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--nav-h);
+  background: var(--c-void);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.s-nav-menu[hidden] {
+  display: none;
+}
+
+/* Keep native scrolling still behind the menu (reduced motion / no Lenis). */
+html:has(.s-nav-menu:not([hidden])) {
+  overflow: hidden;
+}
+
+.s-nav-menu__bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.s-nav-menu__sky {
+  width: 100%;
+  height: 100%;
+}
+
+/* Bright leading edge of the opening wipe */
+.s-nav-menu__edge {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c-ion) 30%, var(--c-ion) 70%, transparent);
+  box-shadow: 0 0 18px 2px rgba(111, 195, 255, 0.55);
+  opacity: 0;
+}
+
+.s-nav-menu__body {
+  position: relative;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 40px;
+  padding-block: clamp(20px, 5vh, 64px) clamp(20px, 4vh, 48px);
+}
+
+.s-nav-menu__nav {
+  align-self: center;
+}
+
+.s-nav-menu__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.s-nav-menu__link {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(14px, 1.6vw, 26px);
+  width: max-content;
+  max-width: 100%;
+  padding-block: 0.15em;
+  color: var(--c-text);
+  text-decoration: none;
+  /* Height-led, but capped so the longest destination ("Flight computer",
+     ~10.6em) always fits beside the readout column (300px + gaps). */
+  font-size: clamp(2rem, min(6.2vh, 5.2vw, (100vw - 2 * var(--gutter) - 420px) / 10.8), 5.4rem);
+}
+
+.s-nav-menu__num {
+  flex: none;
+  width: 2.6ch;
+  padding-top: 0.55em;
+  font-family: var(--font-mono);
+  font-size: max(0.66rem, 0.16em);
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  color: var(--s-nav-label);
+  transition: color 0.4s var(--ease-out);
+}
+
+.s-nav-menu__word {
+  display: block;
+  overflow: hidden;
+  padding-block: 0.04em;
+  margin-block: -0.04em;
+}
+
+.s-nav-menu__word-in {
+  display: block;
+  font-family: var(--font-display);
+  font-stretch: 120%;
+  font-weight: 650;
+  line-height: 0.98;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: color 0.5s var(--ease-out), transform 0.7s var(--ease-out);
+}
+
+/* Destination note appears beside the hovered word. Out of flow, so it can
+   never squeeze (and clip) the masked word. */
+.s-nav-menu__desc {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  margin-left: clamp(14px, 1.6vw, 26px);
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--c-atmo);
+  opacity: 0;
+  transform: translate(-12px, -50%);
+  transition: opacity 0.45s var(--ease-out), transform 0.6s var(--ease-out);
+  pointer-events: none;
+}
+
+.s-nav-menu__desc::before {
+  content: '';
+  width: 32px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.6s var(--ease-out);
+}
+
+/* Hover / keyboard focus: the target leans forward, everything else recedes */
+.s-nav-menu.has-target .s-nav-menu__word-in {
+  color: rgba(244, 246, 251, 0.38);
+}
+
+.s-nav-menu__link.is-target .s-nav-menu__word-in,
+.s-nav-menu__link:focus-visible .s-nav-menu__word-in {
+  color: var(--c-text);
+  transform: translateX(0.14em);
+}
+
+.s-nav-menu__link.is-target .s-nav-menu__num,
+.s-nav-menu__link.is-current .s-nav-menu__num {
+  color: var(--c-atmo);
+}
+
+.s-nav-menu__link.is-target .s-nav-menu__desc,
+.s-nav-menu__link:focus-visible .s-nav-menu__desc {
+  opacity: 1;
+  transform: translate(0.3em, -50%);
+}
+
+.s-nav-menu__link.is-target .s-nav-menu__desc::before,
+.s-nav-menu__link:focus-visible .s-nav-menu__desc::before {
+  transform: scaleX(1);
+}
+
+.s-nav-menu__link:focus-visible {
+  outline-offset: 6px;
+}
+
+/* Current section: a tiny marker on its index */
+.s-nav-menu__link.is-current .s-nav-menu__num::after {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 4px;
+  margin-top: 8px;
+  background: var(--c-atmo);
+  box-shadow: 0 0 8px var(--c-atmo);
+}
+
+/* ---- Destination readout -------------------------------------------------- */
+.s-nav-menu__readout {
+  --tick: 12px;
+  position: relative;
+  width: 300px;
+  padding: 22px 24px 20px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  background-color: rgba(3, 5, 10, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.s-nav-menu__readout p {
+  margin: 0;
+}
+
+.s-nav-menu__readout-key {
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-label);
+  color: var(--s-nav-label);
+}
+
+.s-nav-menu__readout-val {
+  margin-top: 10px !important;
+  font-family: var(--font-display);
+  font-stretch: 120%;
+  font-weight: 600;
+  font-size: 2.6rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text-faint);
+}
+
+.s-nav-menu__readout-val span {
+  color: var(--c-text);
+  transition: color 0.4s;
+}
+
+.s-nav-menu__readout.is-target .s-nav-menu__readout-val span {
+  color: var(--c-atmo);
+}
+
+.s-nav-menu__readout-name {
+  margin-top: 14px !important;
+  min-height: 2.8em;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  letter-spacing: var(--tracking-wide);
+  color: var(--c-text);
+}
+
+.s-nav-menu__readout-sim {
+  margin-top: 16px !important;
+  padding-top: 12px;
+  border-top: 1px solid var(--c-line);
+  font-size: 0.62rem;
+  letter-spacing: var(--tracking-label);
+  color: var(--s-nav-label);
+}
+
+/* ---- Telemetry footer ------------------------------------------------------- */
+.s-nav-menu__telemetry {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px clamp(20px, 3.4vw, 56px);
+  padding-block: 22px max(22px, env(safe-area-inset-bottom));
+}
+
+.s-nav-menu__rule {
+  position: absolute;
+  top: 0;
+  left: var(--gutter);
+  right: var(--gutter);
+  height: 1px;
+  background: var(--c-line);
+  transform-origin: left;
+}
+
+.s-nav-menu__tm {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.s-nav-menu__tm-key {
+  margin-right: 0.6em;
+  color: var(--s-nav-label);
+}
+
+.s-nav-menu__mail {
+  margin-left: auto;
+  color: var(--c-text);
+  text-decoration: none;
+  background: linear-gradient(currentColor, currentColor) left bottom / 0 1px no-repeat;
+  padding-bottom: 3px;
+  transition: background-size 0.5s var(--ease-out), color 0.3s;
+}
+
+.s-nav-menu__mail:hover,
+.s-nav-menu__mail:focus-visible {
+  color: var(--c-atmo);
+  background-size: 100% 1px;
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+@media (max-width: 1180px) {
+  .s-nav__clock {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  /* Thumb-reach: the list sits low, the system map takes the sky above it */
+  .s-nav-menu__body {
+    grid-template-columns: 1fr;
+    align-items: end;
+    padding-bottom: 28px;
+  }
+
+  .s-nav-menu__nav {
+    align-self: end;
+  }
+
+  .s-nav-menu__link {
+    font-size: clamp(2rem, min(6.2vh, 6.4vw), 3.6rem);
+  }
+
+  /* Compact "you are here" HUD at the top of the map instead of the panel
+     (doubled class: must beat the shared .ticks backgrounds) */
+  .s-nav-menu .s-nav-menu__readout {
+    position: absolute;
+    top: clamp(14px, 3vh, 32px);
+    left: var(--gutter);
+    width: auto;
+    max-width: calc(100% - 2 * var(--gutter));
+    padding: 0;
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .s-nav-menu__readout-val {
+    margin-top: 8px !important;
+    font-size: 2rem;
+  }
+
+  .s-nav-menu__readout-name {
+    min-height: 0;
+    margin-top: 10px !important;
+    font-size: 0.68rem;
+  }
+
+  .s-nav-menu__readout-sim {
+    display: none;
+  }
+}
+
+/* Too short for both: the list wins */
+@media (max-width: 900px) and (max-height: 640px) {
+  .s-nav-menu__readout {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  html.js .s-nav__primary {
+    display: none;
+  }
+
+  .s-nav__sound-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .s-nav__sound {
+    padding-inline: 8px;
+  }
+}
+
+@media (max-width: 720px) {
+  .s-nav__tools {
+    gap: 6px;
+  }
+
+  .s-nav__toggle {
+    gap: 12px;
+  }
+
+  .s-nav-menu__link {
+    font-size: clamp(1.35rem, 7.2vw, 2.6rem); /* "Flight computer" fits at 320px */
+    padding-block: 0.22em;
+    gap: 12px;
+  }
+
+  .s-nav-menu__num {
+    padding-top: 0.42em;
+  }
+
+  .s-nav-menu__desc {
+    display: none;
+  }
+
+  .s-nav-menu__telemetry {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px 16px;
+    padding-top: 18px;
+  }
+
+  .s-nav-menu__tm--status,
+  .s-nav-menu__mail {
+    justify-self: end;
+    margin-left: 0;
+  }
+
+  /* Rows: UTC · status / coordinates · contact */
+  .s-nav-menu__tm--status {
+    order: 1;
+  }
+
+  .s-nav-menu__tm:nth-of-type(2) {
+    order: 2;
+  }
+
+  .s-nav-menu__mail {
+    order: 3;
+  }
+
+  .s-nav-menu__tm:nth-of-type(2) .s-nav-menu__tm-key {
+    display: none;
+  }
+
+  /* No-JS: the four primary links stay, compact, beside the logo */
+  html:not(.js) .s-nav__primary {
+    margin-left: auto;
+  }
+
+  html:not(.js) .s-nav__links {
+    gap: 14px;
+  }
+
+  html:not(.js) .s-nav__link {
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+  }
+}
+
+@media (max-height: 560px) and (min-width: 721px) {
+  .s-nav-menu__link {
+    font-size: clamp(1.5rem, 7vh, 2.6rem);
+  }
+}

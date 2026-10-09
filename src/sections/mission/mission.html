@@ -1,5 +1,106 @@
-<section id="mission" class="s-mission section" aria-label="Mission">
-  <div class="container">
-    <p class="eyebrow">Mission</p>
+<section id="mission" class="s-mission" aria-labelledby="mission-title">
+  <!--
+    Manifesto. A sticky frame + scroll runway: mission.js splits the statement
+    into words and lights them one by one. Without JS (or with reduced motion)
+    the runway collapses and the statement is simply fully lit.
+  -->
+  <div class="s-mission__stage" data-mission-stage>
+    <div class="s-mission__frame">
+      <div class="s-mission__sky" aria-hidden="true">
+        <canvas class="s-mission__canvas" data-mission-canvas></canvas>
+      </div>
+
+      <div class="s-mission__inner container">
+        <div class="s-mission__hud s-mission__hud--top">
+          <p class="eyebrow s-mission__eyebrow">02 — Our mission</p>
+          <p class="hud s-mission__directive">
+            <span class="s-mission__hud-label">Directive</span> <span class="hud-value">001</span>
+            <span class="s-mission__hud-sep" aria-hidden="true">/</span>
+            <span class="s-mission__hud-label">Rev</span> <span class="hud-value">A</span>
+          </p>
+        </div>
+
+        <h2 id="mission-title" class="s-mission__statement" data-mission-statement>
+          We build <em>intelligence</em> the way humanity builds <em>rockets</em> — with audacity, with rigor, and with our eyes on the <em>sky.</em>
+        </h2>
+
+        <div class="s-mission__hud s-mission__hud--bottom" aria-hidden="true">
+          <div class="s-mission__meter" data-mission-meter>
+            <span class="s-mission__meter-label"><span class="s-mission__meter-pre">Transmission </span><span data-mission-meter-state>received</span></span>
+            <span class="s-mission__meter-track" data-mission-track></span>
+            <span class="s-mission__meter-count hud-value" data-mission-count></span>
+          </div>
+          <p class="s-mission__fig hud">Fig. 02 <span class="s-mission__hud-sep">/</span> Orbital chart · Illustrative</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="s-mission__body container">
+    <div class="s-mission__head" data-mission-reveal>
+      <p class="eyebrow s-mission__head-label">Principles of flight</p>
+      <p class="hud s-mission__head-note">Three rules <span class="s-mission__hud-sep" aria-hidden="true">/</span> Every mission</p>
+    </div>
+
+    <ol class="s-mission__principles" role="list">
+      <li class="s-mission__principle" data-mission-reveal>
+        <span class="s-mission__index" aria-hidden="true"><span class="s-mission__index-in">01</span></span>
+        <div class="s-mission__pbody">
+          <h3 class="h3 s-mission__ptitle">Ambition</h3>
+          <p class="s-mission__pline">Aim at orbit, not the treetops.</p>
+          <p class="s-mission__pcopy">
+            We take on problems that need a launch campaign, not a weekend — and we commit to the long burn.
+          </p>
+          <p class="s-mission__pmeta hud">
+            <span>Trajectory</span><span class="s-mission__leader" aria-hidden="true"></span><span class="hud-value">Vertical</span>
+          </p>
+        </div>
+      </li>
+      <li class="s-mission__principle" data-mission-reveal>
+        <span class="s-mission__index" aria-hidden="true"><span class="s-mission__index-in">02</span></span>
+        <div class="s-mission__pbody">
+          <h3 class="h3 s-mission__ptitle">Rigor</h3>
+          <p class="s-mission__pline">Every system tested. Every margin earned.</p>
+          <p class="s-mission__pcopy">
+            We measure before we claim. Nothing flies that hasn’t first been proven on the ground.
+          </p>
+          <p class="s-mission__pmeta hud">
+            <span>Go / No-go</span><span class="s-mission__leader" aria-hidden="true"></span><span class="hud-value">Every stage</span>
+          </p>
+        </div>
+      </li>
+      <li class="s-mission__principle" data-mission-reveal>
+        <span class="s-mission__index" aria-hidden="true"><span class="s-mission__index-in">03</span></span>
+        <div class="s-mission__pbody">
+          <h3 class="h3 s-mission__ptitle">Safety</h3>
+          <p class="s-mission__pline">An abort system on every flight.</p>
+          <p class="s-mission__pcopy">
+            Capability and control climb together. If we can’t stop it, we don’t launch it.
+          </p>
+          <p class="s-mission__pmeta hud">
+            <span>Abort system</span><span class="s-mission__leader" aria-hidden="true"></span><span class="status s-mission__armed">Armed</span>
+          </p>
+        </div>
+      </li>
+    </ol>
+
+    <dl class="s-mission__facts" data-mission-reveal>
+      <div class="s-mission__fact">
+        <dt class="s-mission__fact-key hud">Established</dt>
+        <dd class="s-mission__fact-val">2026</dd>
+      </div>
+      <div class="s-mission__fact">
+        <dt class="s-mission__fact-key hud">Headquarters</dt>
+        <dd class="s-mission__fact-val">Earth</dd>
+      </div>
+      <div class="s-mission__fact">
+        <dt class="s-mission__fact-key hud">Destination</dt>
+        <dd class="s-mission__fact-val">Orbit <span class="s-mission__fact-and">&amp; beyond</span></dd>
+      </div>
+      <div class="s-mission__fact">
+        <dt class="s-mission__fact-key hud">Status <span class="s-mission__fact-dot" aria-hidden="true"></span></dt>
+        <dd class="s-mission__fact-val">Pre-launch</dd>
+      </div>
+    </dl>
   </div>
 </section>

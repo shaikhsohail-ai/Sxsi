@@ -1,5 +1,242 @@
-<section id="ascent" class="s-ascent section" aria-label="Ascent">
-  <div class="container">
-    <p class="eyebrow">Ascent</p>
+<section id="ascent" class="s-ascent section" aria-labelledby="ascent-title">
+  <div class="s-ascent__stage">
+    <canvas class="s-ascent__canvas" aria-hidden="true"></canvas>
+    <div class="s-ascent__shade" aria-hidden="true"></div>
+
+    <div class="s-ascent__inner container">
+      <header class="s-ascent__intro">
+        <p class="eyebrow">03 — Ascent profile</p>
+        <h2 id="ascent-title" class="h2 s-ascent__title">Every mission begins on the ground.</h2>
+        <p class="lead s-ascent__lead">
+          Six events stand between the launch pad and orbit — and between a model and a mind.
+        </p>
+        <p class="s-ascent__cue" aria-hidden="true">
+          <span class="s-ascent__cue-track"><span class="s-ascent__cue-dot"></span></span>
+          <span>Scroll to launch</span>
+          <span class="s-ascent__cue-count">T−00:00:10</span>
+        </p>
+      </header>
+
+      <figure class="s-ascent__vehicle">
+        <svg class="s-ascent__svg" viewBox="-190 -1180 580 1260" role="img" aria-labelledby="ascent-vehicle-title ascent-vehicle-desc">
+          <title id="ascent-vehicle-title">SXSI two-stage launch vehicle, concept elevation</title>
+          <desc id="ascent-vehicle-desc">
+            A slender white rocket with swept black fins, five engines, a black interstage band, the letters S, X, S, I stacked down the
+            first stage, and a tapered payload fairing ending in a needle tip.
+          </desc>
+          <defs>
+            <linearGradient id="ascent-g-white" x1="0" x2="1">
+              <stop offset="0" stop-color="#7d8794" />
+              <stop offset="0.26" stop-color="#eef1f5" />
+              <stop offset="0.46" stop-color="#ffffff" />
+              <stop offset="0.8" stop-color="#cfd5dd" />
+              <stop offset="1" stop-color="#5f6874" />
+            </linearGradient>
+            <linearGradient id="ascent-g-black" x1="0" x2="1">
+              <stop offset="0" stop-color="#000000" />
+              <stop offset="0.38" stop-color="#2b3039" />
+              <stop offset="1" stop-color="#030405" />
+            </linearGradient>
+            <linearGradient id="ascent-g-metal" x1="0" x2="1">
+              <stop offset="0" stop-color="#1c1f24" />
+              <stop offset="0.45" stop-color="#8a909a" />
+              <stop offset="1" stop-color="#16181c" />
+            </linearGradient>
+            <linearGradient id="ascent-g-soot" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0" stop-color="#14161b" stop-opacity="0.75" />
+              <stop offset="1" stop-color="#14161b" stop-opacity="0" />
+            </linearGradient>
+            <radialGradient id="ascent-g-halo" cx="0.5" cy="0.5" r="0.5">
+              <stop offset="0" stop-color="#6fc3ff" stop-opacity="0.22" />
+              <stop offset="1" stop-color="#6fc3ff" stop-opacity="0" />
+            </radialGradient>
+          </defs>
+
+          <ellipse cx="0" cy="-540" rx="300" ry="660" fill="url(#ascent-g-halo)" />
+
+          <g class="s-ascent__svg-ruler" aria-hidden="true">
+            <path d="M-150 36 V-1140 M-160 36 H-140 M-160 -1140 H-140" />
+            <path
+              class="s-ascent__svg-ticks"
+              d="M-150 -64 h-6 M-150 -164 h-6 M-150 -264 h-6 M-150 -364 h-6 M-150 -464 h-6 M-150 -564 h-6 M-150 -664 h-6 M-150 -764 h-6 M-150 -864 h-6 M-150 -964 h-6 M-150 -1064 h-6"
+            />
+            <text x="-170" y="-552" transform="rotate(-90 -170 -552)" text-anchor="middle">H 70 M · Ø 5 M</text>
+          </g>
+
+          <g class="s-ascent__svg-vehicle">
+            <path fill="url(#ascent-g-black)" d="M-40.5 -12 L-40.5 -185 L-76.5 -70 L-82.5 -2 L-70.5 6 Z" />
+            <path fill="url(#ascent-g-black)" d="M40.5 -12 L40.5 -185 L76.5 -70 L82.5 -2 L70.5 6 Z" />
+            <path fill="url(#ascent-g-metal)" d="M-19.2 0 L-17.5 8 L-15 18 L-12.5 28 L-11 36 L-39 36 L-37.5 28 L-35 18 L-32.5 8 L-30.8 0 Z" />
+            <path fill="url(#ascent-g-metal)" d="M30.8 0 L32.5 8 L35 18 L37.5 28 L39 36 L11 36 L12.5 28 L15 18 L17.5 8 L19.2 0 Z" />
+            <path fill="url(#ascent-g-metal)" d="M5.8 0 L7.5 8 L10 18 L12.5 28 L14 36 L-14 36 L-12.5 28 L-10 18 L-7.5 8 L-5.8 0 Z" />
+            <path
+              fill="url(#ascent-g-white)"
+              d="M44 0 L50 -4 L50 -17 L47 -36 L43.5 -56 L42 -74 L42 -560 L-42 -560 L-42 -74 L-43.5 -56 L-47 -36 L-50 -17 L-50 -4 L-44 0 Z"
+            />
+            <rect x="-50" y="-125" width="100" height="125" fill="url(#ascent-g-soot)" />
+            <rect x="-3" y="-185" width="6" height="185" fill="#0b0d11" />
+            <rect x="-42" y="-545" width="84" height="3" fill="#6fc3ff" />
+            <rect x="-42" y="-560" width="84" height="10" fill="#0b0d11" />
+            <g class="s-ascent__svg-mark" fill="#0b0d11" text-anchor="middle">
+              <text x="0" y="-452">S</text>
+              <text x="0" y="-386">X</text>
+              <text x="0" y="-320">S</text>
+              <text x="0" y="-254">I</text>
+            </g>
+            <path fill="url(#ascent-g-black)" d="M42 -560 L42 -627 L42.5 -628 L42.5 -630 L-42.5 -630 L-42.5 -628 L-42 -627 L-42 -560 Z" />
+            <path fill="url(#ascent-g-white)" d="M41.5 -630 L41.5 -855 L-41.5 -855 L-41.5 -630 Z" />
+            <rect x="-41.5" y="-855" width="83" height="13" fill="#0b0d11" />
+            <rect x="-41.5" y="-842" width="83" height="3" fill="#6fc3ff" />
+            <text class="s-ascent__svg-s2" x="0" y="-734" text-anchor="middle" fill="#0b0d11">SXSI</text>
+            <path
+              fill="url(#ascent-g-white)"
+              d="M41.5 -855 L43 -859 L47 -875 L47 -940 L46.9 -947.5 L46.6 -955 L46 -962.5 L45.3 -970 L44.3 -977.5 L43.1 -985 L41.7 -992.5 L40.1 -1000 L38.2 -1007.5 L36.1 -1015 L33.7 -1022.5 L31.1 -1030 L28.2 -1037.5 L25.1 -1045 L21.7 -1052.5 L18 -1060 L14 -1067.5 L9.7 -1075 L5 -1082.5 L0 -1090 L-5 -1082.5 L-9.7 -1075 L-14 -1067.5 L-18 -1060 L-21.7 -1052.5 L-25.1 -1045 L-28.2 -1037.5 L-31.1 -1030 L-33.7 -1022.5 L-36.1 -1015 L-38.2 -1007.5 L-40.1 -1000 L-41.7 -992.5 L-43.1 -985 L-44.3 -977.5 L-45.3 -970 L-46 -962.5 L-46.6 -955 L-46.9 -947.5 L-47 -940 L-47 -875 L-43 -859 L-41.5 -855 Z"
+            />
+            <path fill="#0b0d11" d="M47 -876 L47 -882 L-47 -882 L-47 -876 Z" />
+            <path fill="#1d2026" opacity="0.35" d="M-0.6 -1085 V-857 H0.6 V-1085 Z" />
+            <path fill="#0b0d11" d="M3.5 -1082 L2.2 -1095 L1.2 -1130 L0.2 -1140 L-0.2 -1140 L-1.2 -1130 L-2.2 -1095 L-3.5 -1082 Z" />
+          </g>
+
+          <g class="s-ascent__svg-callouts" aria-hidden="true">
+            <path d="M52 -985 H150 M47 -745 H150 M47 -595 H150 M47 -380 H150 M45 22 H150" />
+            <g class="s-ascent__svg-dots">
+              <circle cx="52" cy="-985" r="3.5" />
+              <circle cx="47" cy="-745" r="3.5" />
+              <circle cx="47" cy="-595" r="3.5" />
+              <circle cx="47" cy="-380" r="3.5" />
+              <circle cx="45" cy="22" r="3.5" />
+            </g>
+            <text x="164" y="-977">Payload fairing</text>
+            <text x="164" y="-737">Stage 2</text>
+            <text x="164" y="-587">Interstage</text>
+            <text x="164" y="-372">Stage 1</text>
+            <text x="164" y="30">Engines × 5</text>
+          </g>
+        </svg>
+        <figcaption class="s-ascent__caption">
+          <span>SXSI-1 · Two-stage concept vehicle</span>
+          <span class="s-ascent__caption-status">Status · Concept</span>
+        </figcaption>
+      </figure>
+
+      <ol class="s-ascent__events" role="list">
+        <li class="s-ascent__event" data-event="liftoff">
+          <p class="s-ascent__meta">
+            <span class="s-ascent__num">01</span><span class="s-ascent__name">Liftoff</span><span class="s-ascent__stamp">T+ 00:00:00 · 0 km</span>
+          </p>
+          <h3 class="s-ascent__headline">Pre-training.</h3>
+          <p class="s-ascent__line">A trillion tokens of thrust.</p>
+          <p class="s-ascent__body">Raw capability leaves the pad: vast data, vast compute, one direction — up.</p>
+        </li>
+        <li class="s-ascent__event" data-event="maxq">
+          <p class="s-ascent__meta">
+            <span class="s-ascent__num">02</span><span class="s-ascent__name">Max-Q</span><span class="s-ascent__stamp">T+ 00:01:12 · 11.4 km</span>
+          </p>
+          <h3 class="s-ascent__headline">Alignment.</h3>
+          <p class="s-ascent__line">Maximum pressure, held steady.</p>
+          <p class="s-ascent__body">The moment of peak stress on the airframe. We design for it, not around it — safety is structural.</p>
+        </li>
+        <li class="s-ascent__event" data-event="meco">
+          <p class="s-ascent__meta">
+            <span class="s-ascent__num">03</span><span class="s-ascent__name">MECO</span><span class="s-ascent__stamp">T+ 00:02:30 · 64 km</span>
+          </p>
+          <h3 class="s-ascent__headline">Scale.</h3>
+          <p class="s-ascent__line">Burn until the curve bends.</p>
+          <p class="s-ascent__body">Main engines run to the edge of what raw scale can deliver — then cut off clean.</p>
+        </li>
+        <li class="s-ascent__event" data-event="sep">
+          <p class="s-ascent__meta">
+            <span class="s-ascent__num">04</span><span class="s-ascent__name">Stage separation</span><span class="s-ascent__stamp">T+ 00:02:34 · 67 km</span>
+          </p>
+          <h3 class="s-ascent__headline">Reasoning.</h3>
+          <p class="s-ascent__line">Shed what you don’t need.</p>
+          <p class="s-ascent__body">The spent stage falls away. A lighter, sharper engine lights — and thinks its way higher.</p>
+        </li>
+        <li class="s-ascent__event" data-event="seco">
+          <p class="s-ascent__meta">
+            <span class="s-ascent__num">05</span><span class="s-ascent__name">SECO</span><span class="s-ascent__stamp">T+ 00:08:30 · 201 km</span>
+          </p>
+          <h3 class="s-ascent__headline">Agency.</h3>
+          <p class="s-ascent__line">It flies itself. True to course.</p>
+          <p class="s-ascent__body">Second-engine cutoff. Guidance holds the course it was given — autonomous, and inside the envelope.</p>
+        </li>
+        <li class="s-ascent__event" data-event="orbit">
+          <p class="s-ascent__meta">
+            <span class="s-ascent__num">06</span><span class="s-ascent__name">Orbit</span><span class="s-ascent__stamp">T+ 00:09:00 · 204 km</span>
+          </p>
+          <h3 class="s-ascent__headline s-ascent__headline--long">Super&shy;intelligence.</h3>
+          <p class="s-ascent__line">The sky was never the limit.</p>
+          <p class="s-ascent__body">Stable orbit is where the real mission begins. This is the trajectory we’re on.</p>
+        </li>
+      </ol>
+
+      <p class="s-ascent__note">Simulated ascent profile — illustrative values, not flight data.</p>
+    </div>
+
+    <div class="s-ascent__hud" aria-hidden="true">
+      <div class="s-ascent__hud-top">
+        <span class="s-ascent__sim">Simulated</span>
+        <span class="s-ascent__hud-id">SXSI-1 · Ascent profile</span>
+        <span class="s-ascent__hud-phase" data-hud="phase">Terminal count</span>
+      </div>
+
+      <div class="s-ascent__tape">
+        <div class="s-ascent__tape-track">
+          <div class="s-ascent__tape-fill" data-hud="tape-fill"></div>
+          <div class="s-ascent__tape-rider" data-hud="tape">
+            <span class="s-ascent__tape-marker"><span data-hud="tape-alt">0.0</span> km</span>
+          </div>
+        </div>
+        <ol class="s-ascent__layers" role="list">
+          <li data-layer="4">Orbit</li>
+          <li data-layer="3">Thermosphere</li>
+          <li data-layer="2">Mesosphere</li>
+          <li data-layer="1">Stratosphere</li>
+          <li data-layer="0">Troposphere</li>
+        </ol>
+      </div>
+
+      <div class="s-ascent__bar">
+        <p class="s-ascent__callout" data-hud="callout">
+          <span class="s-ascent__callout-time" data-hud="callout-time">T− 00:00:10</span>
+          <span class="s-ascent__callout-text" data-hud="callout-text">Terminal count · vehicle is go</span>
+        </p>
+
+        <div class="s-ascent__clock">
+          <span class="s-ascent__clock-label" data-hud="clock-label">Count</span>
+          <span class="s-ascent__clock-value"><span data-hud="clock-sign">T−</span><span data-hud="clock">00:00:10</span></span>
+        </div>
+
+        <div class="s-ascent__rail">
+          <div class="s-ascent__rail-track"><div class="s-ascent__rail-fill" data-hud="rail"></div></div>
+          <ol class="s-ascent__rail-nodes" role="list">
+            <li data-node="0"><span>Liftoff</span></li>
+            <li data-node="1"><span>Max-Q</span></li>
+            <li data-node="2"><span>MECO</span></li>
+            <li data-node="3"><span>Stage sep</span></li>
+            <li data-node="4"><span>SECO</span></li>
+            <li data-node="5"><span>Orbit</span></li>
+          </ol>
+        </div>
+
+        <dl class="s-ascent__readouts">
+          <div class="s-ascent__readout s-ascent__readout--alt">
+            <dt>Altitude</dt>
+            <dd><span data-hud="alt">0.0</span><small>km</small></dd>
+          </div>
+          <div class="s-ascent__readout">
+            <dt>Velocity</dt>
+            <dd><span data-hud="vel">0</span><small>km/h</small></dd>
+          </div>
+          <div class="s-ascent__readout s-ascent__readout--throttle">
+            <dt>Stage <span data-hud="stage">1</span> · Throttle</dt>
+            <dd>
+              <span class="s-ascent__throttle" data-hud="throttle-bar"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+              <span class="s-ascent__throttle-value"><span data-hud="throttle">0</span><small>%</small></span>
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </div>
   </div>
 </section>

@@ -1,1 +1,1046 @@
-/* ascent section styles — scope everything under .s-ascent */
+/* ==========================================================================
+   ASCENT — pinned, scroll-scrubbed launch from pad to orbit.
+
+   Two layouts share one markup:
+   - default (no JS, reduced motion, no WebGL): a stacked, static timeline
+     beside an elevation drawing of the vehicle;
+   - `.is-flight` (added by ascent.js): a full-viewport pinned stage with the
+     WebGL scene, HUD, and one event on screen at a time.
+   ========================================================================== */
+
+.s-ascent {
+  --ascent-copy-w: min(44rem, 45vw);
+  --ascent-faint: rgba(244, 246, 251, 0.6); /* HUD labels: AA over the darkest-to-brightest sky behind scrims */
+  --ascent-hud-gap: clamp(18px, 2.4vh, 30px);
+  --ascent-bar-pad: 18px;
+  position: relative;
+  background: var(--c-void);
+  isolation: isolate;
+}
+
+.s-ascent__canvas,
+.s-ascent__shade,
+.s-ascent__hud,
+.s-ascent__cue {
+  display: none;
+}
+
+/* ---- Shared type ----------------------------------------------------------- */
+.s-ascent__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5em 1.1em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--c-text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.s-ascent__num {
+  color: var(--c-atmo);
+}
+
+.s-ascent__name {
+  color: var(--c-text);
+}
+
+.s-ascent__stamp {
+  color: var(--ascent-faint);
+  letter-spacing: var(--tracking-wide);
+}
+
+.s-ascent__headline {
+  margin-top: 0.55em;
+  font-family: var(--font-display);
+  font-stretch: 122%;
+  font-weight: 650;
+  font-size: clamp(1.9rem, 3.4vw, 3.4rem);
+  line-height: 0.92;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  hyphens: manual;
+}
+
+.s-ascent__line {
+  margin-top: 0.7em;
+  font-size: var(--fs-lead);
+  line-height: 1.35;
+  color: var(--c-text);
+  text-wrap: balance;
+}
+
+.s-ascent__body {
+  margin-top: 0.75em;
+  max-width: 44ch;
+  font-size: var(--fs-small);
+  line-height: 1.6;
+  color: var(--c-text-dim);
+  text-wrap: pretty;
+}
+
+.s-ascent__note {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--ascent-faint);
+}
+
+/* ==========================================================================
+   STATIC LAYOUT (default)
+   ========================================================================== */
+.s-ascent:not(.is-flight) {
+  /* clip, not hidden: `hidden` would make the section a scroll container and
+     break the sticky vehicle drawing */
+  overflow: clip;
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(31, 107, 255, 0.22), transparent 60%),
+    radial-gradient(80% 50% at 15% 55%, rgba(111, 195, 255, 0.07), transparent 70%),
+    var(--c-void);
+}
+
+.s-ascent:not(.is-flight) .s-ascent__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'intro'
+    'vehicle'
+    'events'
+    'note';
+  gap: clamp(40px, 7vw, 96px);
+}
+
+.s-ascent:not(.is-flight) .s-ascent__intro {
+  grid-area: intro;
+  display: grid;
+  gap: 24px;
+  max-width: 54rem;
+}
+
+.s-ascent:not(.is-flight) .s-ascent__vehicle {
+  grid-area: vehicle;
+  margin: 0;
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+}
+
+.s-ascent:not(.is-flight) .s-ascent__events {
+  grid-area: events;
+  display: grid;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.s-ascent:not(.is-flight) .s-ascent__note {
+  grid-area: note;
+}
+
+@media (min-width: 900px) {
+  .s-ascent:not(.is-flight) .s-ascent__inner {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    /* the note sits under the timeline so the sticky drawing never overlaps it */
+    grid-template-areas:
+      'intro intro'
+      'vehicle events'
+      'vehicle note';
+    align-items: start;
+  }
+
+  .s-ascent:not(.is-flight) .s-ascent__vehicle {
+    position: sticky;
+    top: calc(var(--nav-h) + 32px);
+  }
+}
+
+.s-ascent__svg {
+  width: auto;
+  height: min(78vh, 760px);
+  max-width: 100%;
+  overflow: visible;
+}
+
+@media (max-width: 899px) {
+  .s-ascent__svg {
+    height: min(62vh, 560px);
+  }
+}
+
+.s-ascent__svg text {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  fill: var(--c-text-dim);
+}
+
+.s-ascent__svg .s-ascent__svg-mark text {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 700;
+  font-size: 66px;
+  letter-spacing: 0;
+  fill: #0b0d11;
+}
+
+.s-ascent__svg .s-ascent__svg-s2 {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  fill: #0b0d11;
+}
+
+.s-ascent__svg-ruler path,
+.s-ascent__svg-callouts path {
+  fill: none;
+  stroke: var(--c-line-strong);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.s-ascent__svg-ruler text {
+  fill: var(--ascent-faint);
+  font-size: 20px;
+}
+
+.s-ascent__svg-dots circle {
+  fill: var(--c-atmo);
+}
+
+.s-ascent__caption {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--ascent-faint);
+}
+
+.s-ascent__caption-status {
+  color: var(--c-text-dim);
+}
+
+/* Vertical event timeline. The rail is the ascent itself: each segment
+   shades from one altitude's sky to the next — dawn blue, deep blue,
+   violet — and arrives at an ion-white orbit. */
+.s-ascent:not(.is-flight) .s-ascent__event {
+  --ascent-from: var(--c-atmo);
+  --ascent-to: var(--c-atmo);
+  position: relative;
+  padding: 0 0 clamp(36px, 5vw, 56px) clamp(28px, 3vw, 44px);
+  border-left: 1px solid transparent;
+  border-image: linear-gradient(to bottom, var(--ascent-from), var(--ascent-to)) 1;
+}
+
+.s-ascent:not(.is-flight) .s-ascent__event:nth-child(1) { --ascent-from: rgba(111, 195, 255, 0.75); --ascent-to: rgba(63, 140, 255, 0.7); }
+.s-ascent:not(.is-flight) .s-ascent__event:nth-child(2) { --ascent-from: rgba(63, 140, 255, 0.7); --ascent-to: rgba(31, 107, 255, 0.7); }
+.s-ascent:not(.is-flight) .s-ascent__event:nth-child(3) { --ascent-from: rgba(31, 107, 255, 0.7); --ascent-to: rgba(84, 80, 232, 0.7); }
+.s-ascent:not(.is-flight) .s-ascent__event:nth-child(4) { --ascent-from: rgba(84, 80, 232, 0.7); --ascent-to: rgba(118, 84, 220, 0.65); }
+.s-ascent:not(.is-flight) .s-ascent__event:nth-child(5) { --ascent-from: rgba(118, 84, 220, 0.65); --ascent-to: rgba(199, 236, 255, 0.85); }
+
+.s-ascent:not(.is-flight) .s-ascent__event:last-child {
+  padding-bottom: 0;
+  border-image: none;
+  border-left-color: transparent;
+}
+
+.s-ascent:not(.is-flight) .s-ascent__event::before {
+  content: '';
+  position: absolute;
+  top: 0.32em;
+  left: -5px;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--ascent-from);
+  border-radius: 50%;
+  background: var(--c-void);
+  box-shadow: 0 0 12px var(--ascent-from);
+}
+
+.s-ascent:not(.is-flight) .s-ascent__event:last-child::before {
+  border-color: var(--c-ion);
+  box-shadow: 0 0 0 4px rgba(199, 236, 255, 0.12), 0 0 16px rgba(199, 236, 255, 0.7);
+  background: var(--c-ion);
+}
+
+/* ==========================================================================
+   FLIGHT LAYOUT (.is-flight)
+   ========================================================================== */
+.s-ascent.is-flight {
+  height: 100vh;
+  height: 100svh;
+  padding: 0;
+  overflow: hidden;
+}
+
+.s-ascent.is-flight .s-ascent__stage {
+  position: absolute;
+  inset: 0;
+}
+
+.s-ascent.is-flight .s-ascent__canvas {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Scrims keep copy and HUD legible over bright sky without dimming the scene. */
+.s-ascent.is-flight .s-ascent__shade {
+  display: block;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to top, #000, transparent 6%),
+    radial-gradient(60% 70% at 12% 50%, rgba(0, 4, 12, 0.5), transparent 70%),
+    radial-gradient(22% 46% at 94% 48%, rgba(0, 4, 12, 0.42), transparent 75%),
+    linear-gradient(to top, rgba(0, 0, 0, 0.62), transparent 26%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.42), transparent 22%),
+    radial-gradient(140% 100% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.45));
+}
+
+/* Fade-in from the black section above while the stage scrolls into place. */
+.s-ascent.is-flight .s-ascent__shade::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 45%;
+  background: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.6) 35%, transparent);
+  opacity: var(--ascent-entry, 1);
+}
+
+/* Full-bleed in flight so copy shares the HUD's gutter grid at any width. */
+.s-ascent.is-flight .s-ascent__inner {
+  position: absolute;
+  inset: 0;
+  max-width: none;
+  pointer-events: none;
+}
+
+/* The canvas draws the vehicle; keep the drawing's description and the
+   "simulated" disclaimer available to assistive tech. */
+.s-ascent.is-flight .s-ascent__vehicle,
+.s-ascent.is-flight .s-ascent__note {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Copy layers are centred with grid alignment, not `translate` — GSAP owns
+   the transforms of these elements and would bake a percentage into pixels. */
+.s-ascent.is-flight .s-ascent__intro {
+  position: absolute;
+  inset: 0 auto 0 var(--gutter);
+  width: min(40rem, 46vw);
+  display: grid;
+  align-content: center;
+  gap: 22px;
+  padding-bottom: 10vh;
+}
+
+.s-ascent.is-flight .s-ascent__title {
+  font-size: clamp(2.2rem, 4.3vw, 4.5rem);
+  text-shadow: 0 2px 40px rgba(0, 0, 0, 0.35);
+}
+
+.s-ascent.is-flight .s-ascent__lead {
+  max-width: 34ch;
+}
+
+.s-ascent.is-flight .s-ascent__cue {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--c-text);
+}
+
+.s-ascent__cue-track {
+  position: relative;
+  width: 1px;
+  height: 34px;
+  background: var(--c-line-strong);
+  overflow: hidden;
+}
+
+.s-ascent__cue-dot {
+  position: absolute;
+  left: -1px;
+  top: 0;
+  width: 3px;
+  height: 12px;
+  background: var(--c-atmo);
+  box-shadow: var(--glow-atmo);
+  animation: ascent-cue 2.2s var(--ease-in-out) infinite;
+}
+
+@keyframes ascent-cue {
+  0% { transform: translateY(-14px); }
+  100% { transform: translateY(36px); }
+}
+
+.s-ascent__cue-count {
+  color: var(--c-ignite);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-wide);
+}
+
+.s-ascent.is-flight .s-ascent__events {
+  position: absolute;
+  inset: 0 auto 0 var(--gutter);
+  width: var(--ascent-copy-w);
+  display: grid;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* every card shares one grid cell; only the active one is visible */
+.s-ascent.is-flight .s-ascent__event {
+  grid-area: 1 / 1;
+  opacity: 0;
+}
+
+.s-ascent.is-flight .s-ascent__headline {
+  font-size: clamp(2.4rem, 4.4vw, 5.2rem);
+  margin-top: 0.42em;
+  text-shadow: 0 2px 40px rgba(0, 0, 0, 0.3);
+}
+
+.s-ascent.is-flight .s-ascent__headline--long {
+  font-size: clamp(1.9rem, 3.1vw, 3.7rem);
+}
+
+.s-ascent.is-flight .s-ascent__line {
+  font-size: clamp(1.15rem, 1.55vw, 1.55rem);
+}
+
+/* Copy rides over clouds, plumes and a sunlit limb: a tight dark halo keeps it AA. */
+.s-ascent.is-flight .s-ascent__line,
+.s-ascent.is-flight .s-ascent__body,
+.s-ascent.is-flight .s-ascent__meta,
+.s-ascent.is-flight .s-ascent__lead,
+.s-ascent.is-flight .s-ascent__intro .eyebrow {
+  text-shadow: 0 0 1px rgba(0, 4, 14, 0.6), 0 1px 16px rgba(0, 4, 14, 0.7);
+}
+
+.s-ascent.is-flight .s-ascent__stamp {
+  color: var(--ascent-faint);
+}
+
+.s-ascent.is-flight .s-ascent__body {
+  max-width: 38ch;
+  color: rgba(244, 246, 251, 0.74);
+}
+
+.s-ascent.is-flight .s-ascent__meta {
+  position: relative;
+  padding-left: 44px;
+}
+
+.s-ascent.is-flight .s-ascent__meta::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 32px;
+  height: 1px;
+  background: var(--c-atmo);
+  box-shadow: var(--glow-atmo);
+  transform-origin: left;
+}
+
+/* SplitText masks */
+.s-ascent__headline .ascent-char-mask {
+  padding-bottom: 0.06em;
+  margin-bottom: -0.06em;
+}
+
+/* ---- HUD -------------------------------------------------------------------- */
+.s-ascent.is-flight .s-ascent__hud {
+  display: block;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5), 0 1px 14px rgba(0, 0, 0, 0.5);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text-dim);
+}
+
+.s-ascent__hud-top {
+  position: absolute;
+  top: calc(var(--nav-h) + 18px);
+  left: var(--gutter);
+  right: var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  isolation: isolate;
+}
+
+/* Clouds and tower lights pass behind the top row: give it a quiet scrim. */
+.s-ascent__hud-top::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: calc(-1 * (var(--nav-h) + 18px)) calc(-1 * var(--gutter)) -64px;
+  background: linear-gradient(to bottom, rgba(0, 2, 8, 0.6), rgba(0, 2, 8, 0.4) 60%, rgba(0, 2, 8, 0));
+  pointer-events: none;
+}
+
+.s-ascent__sim {
+  padding: 4px 9px 3px;
+  border: 1px solid var(--c-line-strong);
+  border-radius: var(--radius);
+  color: var(--c-text);
+  letter-spacing: var(--tracking-label);
+}
+
+.s-ascent__hud-phase {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--c-text);
+}
+
+.s-ascent__hud-phase::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c-ok);
+  box-shadow: 0 0 10px var(--c-ok);
+}
+
+.s-ascent__hud[data-burn='true'] .s-ascent__hud-phase::before {
+  background: var(--c-ignite);
+  box-shadow: 0 0 10px var(--c-ignite);
+}
+
+/* Altitude tape: floating altitude readout · track · layer names */
+.s-ascent__tape {
+  position: absolute;
+  right: var(--gutter);
+  top: 50%;
+  height: min(42vh, 380px);
+  translate: 0 -56%;
+  display: flex;
+  gap: 18px;
+}
+
+.s-ascent__layers {
+  display: grid;
+  grid-template-rows: repeat(5, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 13ch;
+}
+
+.s-ascent__layers li {
+  display: flex;
+  align-items: center;
+  color: var(--ascent-faint);
+  transition: color 0.6s var(--ease-out);
+}
+
+.s-ascent__layers li.is-active {
+  color: var(--c-text);
+}
+
+.s-ascent__tape-track {
+  position: relative;
+  width: 1px;
+  background: var(--c-line-strong);
+}
+
+/* band ticks */
+.s-ascent__tape-track::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 7px;
+  background: repeating-linear-gradient(to top, var(--c-line-strong) 0 1px, transparent 1px 20%) no-repeat;
+}
+
+.s-ascent__tape-fill {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(to top, var(--c-atmo), var(--c-ion));
+  box-shadow: var(--glow-atmo);
+  transform-origin: bottom;
+  transform: scaleY(0);
+}
+
+.s-ascent__tape-rider {
+  position: absolute;
+  inset: 0 auto auto 0;
+  height: 100%;
+  transform: translateY(100%);
+}
+
+.s-ascent__tape-marker {
+  position: absolute;
+  top: 0;
+  right: 0;
+  translate: 0 -50%;
+  white-space: nowrap;
+  color: var(--c-text);
+  padding-right: 30px;
+}
+
+.s-ascent__tape-marker::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  width: 22px;
+  height: 1px;
+  background: var(--c-ion);
+  box-shadow: var(--glow-atmo);
+}
+
+/* Bottom bar: clock · event rail · readouts, one calm row */
+.s-ascent__bar {
+  position: absolute;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: var(--ascent-hud-gap);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: 'clock rail readouts';
+  column-gap: clamp(32px, 4.4vw, 72px);
+  align-items: center;
+  padding-top: var(--ascent-bar-pad);
+  isolation: isolate;
+}
+
+/* Backdrop: the limb, the sunrise, the plume and the falling first stage all
+   pass behind the bar, so it carries its own scrim instead of relying on the
+   page-wide shade. The hairline sits above the scrim. */
+.s-ascent__bar::before,
+.s-ascent__bar::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+
+.s-ascent__bar::before {
+  z-index: -1;
+  left: calc(-1 * var(--gutter));
+  right: calc(-1 * var(--gutter));
+  bottom: calc(-1 * var(--ascent-hud-gap));
+  height: calc(100% + var(--ascent-hud-gap) + 140px);
+  /* eased falloff (no visible top edge) */
+  background: linear-gradient(
+    to top,
+    rgba(0, 2, 8, 0.86),
+    rgba(0, 2, 8, 0.7) calc(100% - 170px),
+    rgba(0, 2, 8, 0.48) calc(100% - 120px),
+    rgba(0, 2, 8, 0.26) calc(100% - 75px),
+    rgba(0, 2, 8, 0.1) calc(100% - 35px),
+    rgba(0, 2, 8, 0)
+  );
+}
+
+.s-ascent__bar::after {
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, var(--c-line-strong), var(--c-line) 30%, var(--c-line) 70%, var(--c-line-strong));
+}
+
+/* Mission-control log: one typed callout per flight event, sitting on the
+   bar's hairline above the event rail. */
+.s-ascent__callout {
+  position: absolute;
+  grid-area: rail;
+  left: 0;
+  bottom: calc(100% + var(--ascent-bar-pad) + 16px);
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 0;
+  white-space: nowrap;
+  color: var(--c-text);
+  letter-spacing: var(--tracking-label);
+}
+
+.s-ascent__callout::before {
+  content: '';
+  align-self: center;
+  width: 6px;
+  height: 6px;
+  background: var(--c-atmo);
+  box-shadow: var(--glow-atmo);
+  transition: background-color 0.6s var(--ease-out), box-shadow 0.6s var(--ease-out), opacity 0.6s var(--ease-out);
+}
+
+.s-ascent__callout-time {
+  color: var(--c-atmo);
+  letter-spacing: var(--tracking-wide);
+}
+
+.s-ascent__callout-text {
+  transition: color 1.2s var(--ease-out);
+}
+
+/* A fresh call is bright; after a few seconds it settles back into the HUD. */
+.s-ascent__callout[data-fresh='false'] .s-ascent__callout-text {
+  color: var(--c-text-dim);
+}
+
+.s-ascent__callout[data-fresh='false']::before {
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+.s-ascent__callout[data-tone='ignite']::before {
+  background: var(--c-ignite);
+  box-shadow: var(--glow-ignite);
+}
+
+.s-ascent__callout[data-tone='ignite'] .s-ascent__callout-time {
+  color: var(--c-ignite-soft);
+}
+
+.s-ascent__clock {
+  grid-area: clock;
+  display: grid;
+  gap: 8px;
+}
+
+.s-ascent__clock-label {
+  color: var(--ascent-faint);
+  letter-spacing: var(--tracking-label);
+}
+
+.s-ascent__clock-value {
+  font-size: clamp(1.3rem, 1.9vw, 1.85rem);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: var(--c-text);
+  white-space: nowrap;
+}
+
+.s-ascent__hud[data-count='true'] .s-ascent__clock-value {
+  color: var(--c-ignite);
+  text-shadow: var(--glow-ignite);
+}
+
+.s-ascent__rail {
+  grid-area: rail;
+  position: relative;
+  padding-top: 4px;
+  margin-bottom: 18px;
+}
+
+.s-ascent__rail-track {
+  position: absolute;
+  top: 8px;
+  left: 4px;
+  right: 4px;
+  height: 1px;
+  background: var(--c-line-strong);
+}
+
+.s-ascent__rail-fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--c-atmo), var(--c-ion));
+  box-shadow: var(--glow-atmo);
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+.s-ascent__rail-nodes {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.s-ascent__rail-nodes li {
+  position: relative;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--c-line-strong);
+  border-radius: 50%;
+  background: var(--c-void);
+  transition: border-color 0.4s var(--ease-out), background-color 0.4s var(--ease-out), box-shadow 0.4s var(--ease-out);
+}
+
+.s-ascent__rail-nodes li span {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  translate: -50% 0;
+  white-space: nowrap;
+  color: var(--ascent-faint);
+  transition: color 0.4s var(--ease-out);
+}
+
+.s-ascent__rail-nodes li:first-child span {
+  left: 0;
+  translate: 0 0;
+}
+
+.s-ascent__rail-nodes li:last-child span {
+  left: auto;
+  right: 0;
+  translate: 0 0;
+}
+
+.s-ascent__rail-nodes li.is-past {
+  border-color: var(--c-atmo);
+  background: var(--c-atmo);
+}
+
+.s-ascent__rail-nodes li.is-past span {
+  color: var(--c-text-dim);
+}
+
+.s-ascent__rail-nodes li.is-active {
+  border-color: var(--c-ion);
+  background: var(--c-ion);
+  box-shadow: 0 0 0 4px rgba(111, 195, 255, 0.18), var(--glow-atmo);
+}
+
+.s-ascent__rail-nodes li.is-active span {
+  color: var(--c-text);
+}
+
+.s-ascent__readouts {
+  grid-area: readouts;
+  display: flex;
+  gap: clamp(24px, 2.6vw, 44px);
+  margin: 0;
+}
+
+/* the tape carries altitude on wide screens */
+.s-ascent__readouts .s-ascent__readout--alt {
+  display: none;
+}
+
+.s-ascent__readout {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.s-ascent__readout dt {
+  color: var(--ascent-faint);
+  letter-spacing: var(--tracking-label);
+  white-space: nowrap;
+}
+
+.s-ascent__readout dd {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: clamp(0.95rem, 1.2vw, 1.15rem);
+  color: var(--c-text);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.s-ascent__readout small {
+  font-size: var(--fs-micro);
+  color: var(--c-text-dim);
+  letter-spacing: var(--tracking-wide);
+}
+
+.s-ascent__throttle-value {
+  min-width: 3.4em;
+}
+
+.s-ascent__throttle {
+  display: inline-flex;
+  gap: 2px;
+  align-self: center;
+  margin-right: 4px;
+}
+
+.s-ascent__throttle i {
+  width: 4px;
+  height: 12px;
+  background: var(--c-line-strong);
+  transition: background-color 0.25s linear;
+}
+
+.s-ascent__throttle i.is-on {
+  background: var(--c-text);
+}
+
+.s-ascent__hud[data-burn='true'] .s-ascent__throttle i.is-on {
+  background: var(--c-ignite-soft);
+}
+
+/* ---- Flight: mid-size screens --------------------------------------------- */
+@media (max-width: 1100px) {
+  .s-ascent .s-ascent__readout--throttle {
+    display: none;
+  }
+}
+
+/* ---- Flight: tall screens (phones, portrait tablets) -----------------------
+   Copy moves to the top and the vehicle is centred — this matches the
+   scene's "tall" framing, which switches at the same 9:10 aspect ratio. */
+@media (max-width: 720px), (max-aspect-ratio: 9/10) {
+  .s-ascent {
+    --ascent-copy-w: min(36rem, 70vw);
+    --ascent-bar-pad: 14px;
+  }
+
+  .s-ascent.is-flight .s-ascent__intro,
+  .s-ascent.is-flight .s-ascent__events {
+    top: calc(var(--nav-h) + 58px);
+    bottom: auto;
+    width: var(--ascent-copy-w);
+    align-content: start;
+    align-items: start;
+    padding-bottom: 0;
+  }
+
+  .s-ascent.is-flight .s-ascent__intro {
+    gap: 14px;
+  }
+
+  .s-ascent.is-flight .s-ascent__shade {
+    background:
+      linear-gradient(to top, #000, transparent 5%),
+      linear-gradient(to bottom, rgba(0, 3, 10, 0.62), rgba(0, 3, 10, 0.18) 40%, transparent 55%),
+      radial-gradient(30% 40% at 96% 50%, rgba(0, 4, 12, 0.4), transparent 75%),
+      linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent 28%);
+  }
+
+  .s-ascent__bar {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'rail rail'
+      'clock readouts';
+    row-gap: 12px;
+    column-gap: 18px;
+  }
+
+  .s-ascent__rail {
+    margin-bottom: 24px;
+  }
+
+  .s-ascent__readouts {
+    justify-content: flex-end;
+    gap: 18px;
+  }
+
+  .s-ascent__readouts .s-ascent__readout--alt {
+    display: grid;
+  }
+
+  /* Tall screens: the callout log takes the node-label slot under the rail. */
+  .s-ascent__rail-nodes li span {
+    display: none;
+  }
+
+  .s-ascent__callout {
+    top: 22px;
+    bottom: auto;
+  }
+}
+
+/* ---- Flight: phones ---------------------------------------------------------- */
+@media (max-width: 720px) {
+  .s-ascent {
+    --ascent-copy-w: auto;
+  }
+
+  .s-ascent.is-flight .s-ascent__intro,
+  .s-ascent.is-flight .s-ascent__events {
+    right: var(--gutter);
+  }
+
+  .s-ascent.is-flight .s-ascent__title {
+    font-size: clamp(1.9rem, 8.4vw, 2.6rem);
+  }
+
+  .s-ascent.is-flight .s-ascent__lead {
+    font-size: 0.98rem;
+  }
+
+  .s-ascent.is-flight .s-ascent__cue {
+    margin-top: 2px;
+  }
+
+  .s-ascent.is-flight .s-ascent__headline {
+    font-size: clamp(2.1rem, 10.5vw, 3rem);
+  }
+
+  .s-ascent.is-flight .s-ascent__headline--long {
+    font-size: clamp(1.4rem, 6.4vw, 2.2rem);
+  }
+
+  .s-ascent.is-flight .s-ascent__line {
+    font-size: 1.05rem;
+  }
+
+  .s-ascent.is-flight .s-ascent__body,
+  .s-ascent.is-flight .s-ascent__stamp {
+    display: none;
+  }
+
+  .s-ascent__hud-top {
+    top: calc(var(--nav-h) + 12px);
+    gap: 12px;
+  }
+
+  .s-ascent__hud-id,
+  .s-ascent__tape,
+  .s-ascent__callout-time {
+    display: none;
+  }
+
+  .s-ascent__callout {
+    gap: 10px;
+    letter-spacing: var(--tracking-wide);
+  }
+
+  .s-ascent__clock-value {
+    font-size: 1.3rem;
+  }
+
+  .s-ascent__readout dd {
+    font-size: 0.95rem;
+  }
+}

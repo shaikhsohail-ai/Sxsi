@@ -1,3 +1,124 @@
-<header class="s-nav" role="banner">
-  <a class="s-nav__logo" href="#hero" aria-label="SXSI — back to top">SXSI</a>
+<!-- Scroll progress: a hairline "trajectory" along the top edge (JS only) -->
+<div class="s-nav-progress" aria-hidden="true"><span class="s-nav-progress__bar" data-nav-progress></span></div>
+
+<header class="s-nav" data-nav>
+  <div class="s-nav__bar container">
+    <a class="s-nav__logo" href="#hero" aria-label="SXSI, back to top" data-nav-intro>
+      <svg class="s-nav__logo-svg" viewBox="0 0 211.2 40" fill="currentColor" aria-hidden="true" focusable="false">
+        <path d="M60,0H11.5A11.5,11.5 0 0 0 0,11.5V11.6A11.5,11.5 0 0 0 11.5,23.1H48.5A5.3,5.3 0 0 1 53.8,28.4V28.5A5.3,5.3 0 0 1 48.5,33.8H6.79L0,40H48.5A11.5,11.5 0 0 0 60,28.5V28.4A11.5,11.5 0 0 0 48.5,16.9H11.5A5.3,5.3 0 0 1 6.2,11.6V11.5A5.3,5.3 0 0 1 11.5,6.2H53.21L60,0Z" />
+        <path d="M69.5,0L79.7,0L123.5,40L113.3,40Z" />
+        <path class="s-nav__logo-orbit s-nav__logo-orbit--a" d="M113.3,0L123.5,0L102.9,18.81L97.8,14.15Z" />
+        <path class="s-nav__logo-orbit s-nav__logo-orbit--b" d="M90.1,21.19L95.2,25.84L79.7,40L69.5,40Z" />
+        <path d="M193,0H144.5A11.5,11.5 0 0 0 133,11.5V11.6A11.5,11.5 0 0 0 144.5,23.1H181.5A5.3,5.3 0 0 1 186.8,28.4V28.5A5.3,5.3 0 0 1 181.5,33.8H139.79L133,40H181.5A11.5,11.5 0 0 0 193,28.5V28.4A11.5,11.5 0 0 0 181.5,16.9H144.5A5.3,5.3 0 0 1 139.2,11.6V11.5A5.3,5.3 0 0 1 144.5,6.2H186.21L193,0Z" />
+        <path d="M205,0H211.2V40H205Z" />
+      </svg>
+    </a>
+
+    <nav class="s-nav__primary" aria-label="Primary" data-nav-primary>
+      <ul class="s-nav__links" role="list">
+        <li data-nav-intro><a class="s-nav__link" href="#mission" aria-label="Mission" data-nav-link><span class="s-nav__link-text" data-scramble>Mission</span></a></li>
+        <li data-nav-intro><a class="s-nav__link" href="#fleet" aria-label="Fleet" data-nav-link><span class="s-nav__link-text" data-scramble>Fleet</span></a></li>
+        <li data-nav-intro><a class="s-nav__link" href="#manifest" aria-label="Manifest" data-nav-link><span class="s-nav__link-text" data-scramble>Manifest</span></a></li>
+        <li data-nav-intro><a class="s-nav__link" href="#join" aria-label="Join" data-nav-link><span class="s-nav__link-text" data-scramble>Join</span></a></li>
+      </ul>
+    </nav>
+
+    <div class="s-nav__tools">
+      <p class="s-nav__clock hud" data-nav-intro>
+        <span class="s-nav__clock-label">UTC</span>
+        <span class="hud-value" data-nav-clock>00:00:00</span>
+      </p>
+
+      <button class="s-nav__sound" type="button" aria-pressed="false" data-nav-sound data-nav-intro>
+        <span class="s-nav__eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="s-nav__sound-label">Sound</span>
+        <span class="s-nav__sound-state" aria-hidden="true" data-nav-sound-state>Off</span>
+      </button>
+
+      <button class="s-nav__toggle" type="button" aria-expanded="false" aria-controls="s-nav-menu" data-nav-toggle data-nav-intro>
+        <span class="s-nav__toggle-label" data-nav-toggle-label>Menu</span>
+        <span class="s-nav__burger" aria-hidden="true"><i></i><i></i></span>
+      </button>
+    </div>
+  </div>
 </header>
+
+<!-- Full-screen menu: opened by the MENU button (JS only; hidden until then) -->
+<div class="s-nav-menu" id="s-nav-menu" data-nav-menu data-lenis-prevent hidden>
+  <div class="s-nav-menu__bg" aria-hidden="true">
+    <canvas class="s-nav-menu__sky" data-nav-menu-sky></canvas>
+    <span class="s-nav-menu__edge" data-nav-menu-edge></span>
+  </div>
+
+  <div class="s-nav-menu__body container">
+    <nav class="s-nav-menu__nav" aria-label="Site">
+      <ol class="s-nav-menu__list" role="list">
+        <li class="s-nav-menu__item">
+          <a class="s-nav-menu__link" href="#mission" data-menu-link>
+            <span class="s-nav-menu__num" aria-hidden="true">01</span>
+            <span class="s-nav-menu__word"><span class="s-nav-menu__word-in">Mission</span></span>
+            <span class="s-nav-menu__desc">Why we fly</span>
+          </a>
+        </li>
+        <li class="s-nav-menu__item">
+          <a class="s-nav-menu__link" href="#ascent" data-menu-link>
+            <span class="s-nav-menu__num" aria-hidden="true">02</span>
+            <span class="s-nav-menu__word"><span class="s-nav-menu__word-in">Ascent</span></span>
+            <span class="s-nav-menu__desc">Pad to orbit</span>
+          </a>
+        </li>
+        <li class="s-nav-menu__item">
+          <a class="s-nav-menu__link" href="#fleet" data-menu-link>
+            <span class="s-nav-menu__num" aria-hidden="true">03</span>
+            <span class="s-nav-menu__word"><span class="s-nav-menu__word-in">Fleet</span></span>
+            <span class="s-nav-menu__desc">The vehicles</span>
+          </a>
+        </li>
+        <li class="s-nav-menu__item">
+          <a class="s-nav-menu__link" href="#control" data-menu-link>
+            <span class="s-nav-menu__num" aria-hidden="true">04</span>
+            <span class="s-nav-menu__word"><span class="s-nav-menu__word-in">Mission control</span></span>
+            <span class="s-nav-menu__desc">Capabilities</span>
+          </a>
+        </li>
+        <li class="s-nav-menu__item">
+          <a class="s-nav-menu__link" href="#manifest" data-menu-link>
+            <span class="s-nav-menu__num" aria-hidden="true">05</span>
+            <span class="s-nav-menu__word"><span class="s-nav-menu__word-in">Manifest</span></span>
+            <span class="s-nav-menu__desc">Launch schedule</span>
+          </a>
+        </li>
+        <li class="s-nav-menu__item">
+          <a class="s-nav-menu__link" href="#terminal" data-menu-link>
+            <span class="s-nav-menu__num" aria-hidden="true">06</span>
+            <span class="s-nav-menu__word"><span class="s-nav-menu__word-in">Flight computer</span></span>
+            <span class="s-nav-menu__desc">Interactive console</span>
+          </a>
+        </li>
+        <li class="s-nav-menu__item">
+          <a class="s-nav-menu__link" href="#join" data-menu-link>
+            <span class="s-nav-menu__num" aria-hidden="true">07</span>
+            <span class="s-nav-menu__word"><span class="s-nav-menu__word-in">Join</span></span>
+            <span class="s-nav-menu__desc">Board the mission</span>
+          </a>
+        </li>
+      </ol>
+    </nav>
+
+    <!-- Destination readout for the hovered / focused item (decorative echo) -->
+    <div class="s-nav-menu__readout ticks" aria-hidden="true">
+      <p class="s-nav-menu__readout-key">Destination</p>
+      <p class="s-nav-menu__readout-val"><span data-menu-dest-num>00</span> / 07</p>
+      <p class="s-nav-menu__readout-name" data-menu-dest-name>Select a destination</p>
+      <p class="s-nav-menu__readout-sim">System map · Not to scale</p>
+    </div>
+  </div>
+
+  <div class="s-nav-menu__telemetry container">
+    <span class="s-nav-menu__rule" aria-hidden="true"></span>
+    <p class="s-nav-menu__tm hud"><span class="s-nav-menu__tm-key">UTC</span> <span class="hud-value" data-nav-menu-clock>00:00:00</span></p>
+    <p class="s-nav-menu__tm hud"><span class="s-nav-menu__tm-key">Pad</span> <span class="hud-value" data-nav-menu-coords>28.4858° N 80.5444° W</span></p>
+    <p class="s-nav-menu__tm s-nav-menu__tm--status status">All systems nominal</p>
+    <a class="s-nav-menu__tm s-nav-menu__mail hud" href="mailto:hello@sxsi.ai" data-nav-menu-mail>hello@sxsi.ai</a>
+  </div>
+</div>

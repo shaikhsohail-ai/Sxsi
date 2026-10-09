@@ -1,1 +1,1001 @@
-/* control section styles — scope everything under .s-control */
+/* ==========================================================================
+   MISSION CONTROL — SXSI's capabilities as a console.
+
+   Head (title, statement, UTC mission clock, systems-online meter) → a
+   full-bleed simulated telemetry ribbon → a hairline bento grid of six
+   "systems", each with a live 2D-canvas micro-visualisation.
+
+   Bento (≥ 1200px, 12 columns × 4 rows):
+     R R R R R R R M M M M M     R reasoning   M memory    P perception
+     R R R R R R R P P P P P     S safety      A agency    C scale
+     S S S S S A A A A A A A
+     S S S S S C C C C C C C
+   Tablet: R R / M P / S A / C C.   Mobile: one column, per-tile heights.
+
+   Reveal states only apply under `html.js` and outside reduced motion, with
+   a CSS failsafe if the script never arms the section.
+   ========================================================================== */
+
+.s-control {
+  --control-faint: rgba(244, 246, 251, 0.6); /* AA on black for micro labels */
+  --control-grid: color-mix(in srgb, var(--c-text) 13%, var(--c-void)); /* opaque hairline */
+  --control-grid-hot: color-mix(in srgb, var(--c-atmo) 32%, var(--c-void));
+  --control-row: clamp(270px, 22.6vw, 344px);
+  position: relative;
+  isolation: isolate;
+  background: var(--c-void);
+}
+
+/* ---- Head ---------------------------------------------------------------- */
+.s-control__head {
+  position: relative;
+}
+
+.s-control__head-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 2rem;
+}
+
+.s-control .s-control__station {
+  color: var(--control-faint);
+}
+
+.s-control .s-control__title {
+  margin-top: clamp(1.2rem, 3vh, 2rem);
+  font-size: clamp(3.2rem, 14.4vw, 9.4rem);
+  font-weight: 700;
+  font-stretch: 125%;
+  line-height: 0.84;
+  letter-spacing: -0.005em;
+}
+
+.s-control__head-grid {
+  position: relative;
+  display: grid;
+  gap: 2.5rem;
+  margin-top: clamp(2rem, 5vh, 3.5rem);
+  padding-top: clamp(1.5rem, 3vh, 2.2rem);
+}
+
+/* Hairline that draws in from the left on reveal (--control-rule: 0 → 1) */
+.s-control__head-grid::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--c-line-strong);
+  transform: scaleX(var(--control-rule, 1));
+  transform-origin: left;
+}
+
+.s-control__statement {
+  font-family: var(--font-display);
+  font-stretch: 112%;
+  font-weight: 600;
+  font-size: clamp(1.35rem, 2.1vw, 2rem);
+  line-height: 1.08;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.s-control__statement > span {
+  display: block;
+}
+
+.s-control .s-control__body {
+  margin-top: 1.1rem;
+  max-width: 44ch;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.s-control .s-control__label {
+  color: var(--control-faint);
+}
+
+.s-control__clock-time {
+  margin-top: 0.55rem;
+  font-family: var(--font-mono);
+  font-size: clamp(2.3rem, 3.5vw, 3.4rem);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.s-control__clock-sec {
+  color: var(--c-atmo);
+}
+
+.s-control__clock-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.6rem;
+  margin-top: 1rem;
+}
+
+.s-control__clock-meta > div {
+  display: flex;
+  gap: 0.6em;
+}
+
+.s-control__clock-meta dt {
+  color: var(--control-faint);
+}
+
+.s-control__clock-meta dd {
+  margin: 0;
+}
+
+/* 24 h UTC ruler: hour ticks, the elapsed part of the day, a "now" marker */
+.s-control__day {
+  --control-day: 0.5;
+  max-width: 300px;
+  margin-top: 1.25rem;
+}
+
+.s-control__day-track {
+  position: relative;
+  height: 10px;
+  border-bottom: 1px solid var(--c-line-strong);
+  background:
+    linear-gradient(var(--c-line-strong), var(--c-line-strong)) right bottom / 1px 10px no-repeat,
+    repeating-linear-gradient(90deg, var(--c-line-strong) 0 1px, transparent 1px 25%) left bottom / 100% 10px no-repeat,
+    repeating-linear-gradient(90deg, var(--c-line) 0 1px, transparent 1px calc(100% / 24)) left bottom / 100% 4px no-repeat;
+}
+
+.s-control__day-track::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: calc(var(--control-day) * 100%);
+  height: 1px;
+  background: var(--c-atmo);
+  box-shadow: 0 0 8px rgba(111, 195, 255, 0.6);
+}
+
+.s-control__day-mark {
+  position: absolute;
+  left: calc(var(--control-day) * 100%);
+  bottom: -1px;
+  width: 1px;
+  height: 15px;
+  background: var(--c-atmo);
+  box-shadow: 0 0 8px var(--c-atmo);
+}
+
+.s-control__day-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: var(--c-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.s-control__systems-count {
+  margin-top: 0.55rem;
+  font-family: var(--font-mono);
+  font-size: clamp(2.3rem, 3.5vw, 3.4rem);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.s-control__systems-of {
+  color: var(--control-faint);
+}
+
+/* Systems board: the six subsystems, each a link to its tile with a lamp
+   that lights as the tile powers on. */
+.s-control__syslist {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1.1rem;
+  max-width: 300px;
+  margin-top: 1rem;
+  border-top: 1px solid var(--c-line);
+}
+
+.s-control__sysrow a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  min-height: 30px;
+  border-bottom: 1px solid var(--c-line);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--control-faint);
+  transition: color 0.4s var(--ease-out);
+}
+
+/* Hairline that sweeps along the row on hover */
+.s-control__sysrow a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: var(--c-atmo);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.6s var(--ease-out);
+}
+
+.s-control__sysrow-i {
+  color: var(--c-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.s-control__sysrow-n {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.s-control__sysrow-lamp {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  background: var(--control-grid);
+  transition: background-color 0.5s var(--ease-out), box-shadow 0.5s var(--ease-out);
+}
+
+.s-control__sysrow.is-on .s-control__sysrow-n {
+  color: var(--c-text);
+}
+
+.s-control__sysrow.is-on .s-control__sysrow-lamp {
+  background: var(--c-atmo);
+  box-shadow: 0 0 10px rgba(111, 195, 255, 0.7);
+}
+
+.s-control__sysrow.is-hot .s-control__sysrow-lamp {
+  background: var(--c-text);
+  box-shadow: 0 0 14px var(--c-text);
+}
+
+.s-control__sysrow a:hover,
+.s-control__sysrow a:focus-visible {
+  color: var(--c-text);
+}
+
+.s-control__sysrow a:hover::after,
+.s-control__sysrow a:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.s-control__sysrow a:focus-visible {
+  outline-offset: 2px;
+}
+
+.s-control .s-control__systems-status {
+  margin-top: 0.85rem;
+}
+
+.s-control__systems.is-standby .s-control__systems-status::before {
+  background: var(--c-text-faint);
+  box-shadow: none;
+}
+
+@media (min-width: 720px) {
+  .s-control__head-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .s-control__intro {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1024px) {
+  .s-control .s-control__title {
+    font-size: clamp(4rem, 7.35vw, 9.4rem);
+    white-space: nowrap;
+  }
+}
+
+/* Three header columns only once the systems board has room for full names */
+@media (min-width: 1280px) {
+  .s-control__head-grid {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.9fr) minmax(0, 0.75fr);
+    gap: 3rem;
+  }
+
+  .s-control__intro {
+    grid-column: auto;
+  }
+
+  .s-control__clock,
+  .s-control__systems {
+    padding-left: 1.6rem;
+    border-left: 1px solid var(--c-line);
+  }
+}
+
+/* ---- Telemetry ribbon (full bleed) -------------------------------------- */
+.s-control__ribbon {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: stretch;
+  height: 48px;
+  margin-block: clamp(2.5rem, 7vh, 4.5rem) clamp(1.5rem, 3.5vh, 2.25rem);
+  border-block: 1px solid var(--c-line);
+}
+
+.s-control__ribbon-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  margin: 0;
+  padding-inline: var(--gutter) 1.4rem;
+  border-right: 1px solid var(--c-line);
+  color: var(--c-text);
+  white-space: nowrap;
+}
+
+.s-control__ribbon-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c-atmo);
+  box-shadow: 0 0 10px var(--c-atmo);
+  animation: sxsi-pulse 2.4s ease-in-out infinite;
+}
+
+.s-control__ribbon-tag-short {
+  display: none;
+}
+
+.s-control__ticker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 48px, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 48px, #000 calc(100% - 48px), transparent);
+}
+
+.s-control__track {
+  display: flex;
+  flex: none;
+  align-items: center;
+  width: max-content;
+  margin: 0;
+  padding: 0 0 0 1.6rem;
+  list-style: none;
+  will-change: transform;
+}
+
+.s-control__tlm {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.75em;
+  padding-right: 2.6rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.s-control__tlm::after {
+  content: '';
+  align-self: center;
+  width: 3px;
+  height: 3px;
+  margin-left: 1.85rem;
+  background: var(--c-line-strong);
+}
+
+.s-control__tlm-k {
+  color: var(--control-faint);
+}
+
+.s-control__tlm .hud-value {
+  font-size: 0.78rem;
+}
+
+.s-control__hold {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7em;
+  padding-inline: 1.3rem var(--gutter);
+  border-left: 1px solid var(--c-line);
+  color: var(--c-text);
+  transition: color 0.35s var(--ease-out), background-color 0.35s var(--ease-out);
+}
+
+.s-control__hold[hidden] {
+  display: none;
+}
+
+.s-control__hold:hover,
+.s-control__hold:focus-visible {
+  background: var(--c-panel-strong);
+}
+
+.s-control__hold:focus-visible {
+  outline-offset: -3px;
+}
+
+/* Pause bars ⇄ play triangle */
+.s-control__hold-icon {
+  position: relative;
+  width: 8px;
+  height: 9px;
+  border-inline: 2px solid currentColor;
+  transition: border-color 0.3s var(--ease-out);
+}
+
+.s-control__hold[aria-pressed='true'] {
+  color: var(--c-atmo);
+}
+
+.s-control__hold[aria-pressed='true'] .s-control__hold-icon {
+  border: 0;
+  width: 0;
+  height: 0;
+  border-left: 8px solid currentColor;
+  border-block: 4.5px solid transparent;
+}
+
+.s-control.is-held .s-control__ribbon-dot {
+  animation: none;
+  background: var(--c-text-faint);
+  box-shadow: none;
+}
+
+/* Under reduced motion (or no JS) the ticker is a still, scrollable strip. */
+.s-control.is-static .s-control__ticker,
+html:not(.js) .s-control__ticker {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* ---- Bento grid ------------------------------------------------------------ */
+.s-control__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1px;
+  padding: 1px; /* room for the outer hairline (tile box-shadows) */
+}
+
+.s-control__tile {
+  --control-tile-h: 320px;
+  --tick-color: var(--c-line-strong);
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'hud state'
+    '. .'
+    'body run';
+  column-gap: 1rem;
+  min-height: var(--control-tile-h);
+  padding: clamp(16px, 1.5vw, 24px);
+  /* Console glass: a faint pool of blue light under a fine pointer */
+  background:
+    radial-gradient(
+      380px circle at var(--control-tx, 50%) var(--control-ty, 50%),
+      rgba(111, 195, 255, calc(0.09 * var(--control-light))),
+      rgba(111, 195, 255, 0) 70%
+    ),
+    var(--c-void);
+  box-shadow: 0 0 0 1px var(--control-grid);
+  overflow: hidden;
+  scroll-margin-top: 24px;
+  transition: --control-light 0.7s var(--ease-out);
+}
+
+/* Registered so the pointer light can fade in and out (plain snap elsewhere). */
+@property --control-light {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+.s-control__tile.is-hover {
+  --control-light: 1;
+}
+
+.s-control__tile--reasoning { --control-tile-h: 440px; }
+.s-control__tile--safety { --control-tile-h: 470px; }
+.s-control__tile--scale { --control-tile-h: 340px; }
+
+/* Hover / focus outline drawn inside the tile */
+.s-control__tile::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border: 1px solid var(--control-grid-hot);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s var(--ease-out);
+}
+
+.s-control__tile.is-active::before {
+  opacity: 1;
+}
+
+.s-control__tile.is-focus::before {
+  border: 2px solid var(--c-atmo);
+  opacity: 1;
+}
+
+/* The pointer's light catching the tile's edge: a 1px border lit by a
+   radial gradient centred on the pointer (masked down to the border ring). */
+.s-control__tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border: 1px solid transparent;
+  background: radial-gradient(
+      440px circle at var(--control-tx, 50%) var(--control-ty, 50%),
+      var(--c-ion),
+      rgba(111, 195, 255, 0.55) 30%,
+      rgba(111, 195, 255, 0) 72%
+    )
+    border-box;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) padding-box exclude, linear-gradient(#000 0 0);
+  opacity: var(--control-light);
+  pointer-events: none;
+}
+
+.s-control__canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Legibility scrim under the copy; the viz stays bright where there's no text */
+.s-control__shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(to top, rgba(0, 0, 0, 0.92) 0, rgba(0, 0, 0, 0.72) 70px, rgba(0, 0, 0, 0) 170px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.7) 0, rgba(0, 0, 0, 0) 76px);
+}
+
+.s-control__frame {
+  --tick: 9px;
+  position: absolute;
+  inset: 7px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.s-control__tile.is-active .s-control__frame,
+.s-control__tile.is-focus .s-control__frame {
+  --tick-color: var(--c-atmo);
+}
+
+.s-control__hud,
+.s-control__state,
+.s-control__body,
+.s-control__run,
+.s-control__counter {
+  z-index: 4;
+}
+
+.s-control__hud {
+  grid-area: hud;
+  min-width: 0;
+}
+
+.s-control .s-control__sys {
+  color: var(--c-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.s-control .s-control__readout {
+  margin-top: 0.3rem;
+  color: var(--control-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.s-control .s-control__state {
+  grid-area: state;
+  align-self: start;
+  white-space: nowrap;
+  transition: color 0.3s var(--ease-out);
+}
+
+.s-control .s-control__state.is-ignite {
+  color: var(--c-ignite);
+}
+
+.s-control .s-control__state.is-ignite::before {
+  background: var(--c-ignite);
+  box-shadow: 0 0 10px var(--c-ignite);
+}
+
+.s-control.is-held .s-control__state::before {
+  animation: none;
+}
+
+.s-control__body {
+  grid-area: body;
+  align-self: end;
+  min-width: 0;
+}
+
+.s-control .s-control__name {
+  font-size: clamp(1.45rem, 1.9vw, 1.95rem);
+  font-weight: 650;
+  line-height: 1;
+}
+
+.s-control .s-control__desc {
+  margin-top: 0.55rem;
+  max-width: 36ch;
+  color: var(--c-text-dim);
+  font-size: 0.94rem;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.s-control__tile--reasoning .s-control__name,
+.s-control__tile--safety .s-control__name {
+  font-size: clamp(1.7rem, 2.6vw, 2.75rem);
+}
+
+/* ---- Run button: a small HUD control whose hit area spans the whole tile -- */
+.s-control__run {
+  grid-area: run;
+  align-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  min-height: 32px;
+  padding: 0 0.85rem;
+  border: 1px solid var(--c-line-strong);
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--c-text);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition:
+    color 0.4s var(--ease-out),
+    background-color 0.4s var(--ease-out),
+    border-color 0.4s var(--ease-out);
+}
+
+.s-control__run[hidden] {
+  display: none;
+}
+
+/* Stretched hit area — positioned against the tile (the button is static) */
+.s-control__run::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.s-control__run:focus-visible {
+  outline: none; /* the tile draws the focus ring (.is-focus) */
+}
+
+.s-control__run-icon {
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+  stroke-linecap: square;
+}
+
+.s-control__tile.is-active .s-control__run,
+.s-control__tile.is-focus .s-control__run {
+  border-color: var(--c-text);
+  background: var(--c-text);
+  color: var(--c-void);
+}
+
+.s-control__tile.is-active .s-control__run--ignite,
+.s-control__tile.is-focus .s-control__run--ignite {
+  border-color: var(--c-ignite);
+  background: var(--c-ignite);
+  color: var(--c-void);
+}
+
+.s-control__tile.has-pointer {
+  cursor: crosshair;
+}
+
+/* ---- Scale counter ----------------------------------------------------------- */
+.s-control__counter {
+  position: absolute;
+  right: clamp(16px, 1.5vw, 24px);
+  bottom: calc(clamp(16px, 1.5vw, 24px) + 46px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  pointer-events: none;
+}
+
+.s-control .s-control__counter-k {
+  color: var(--control-faint);
+}
+
+.s-control__counter-v {
+  text-shadow: 0 0 14px var(--c-void), 0 0 3px var(--c-void);
+  font-family: var(--font-mono);
+  font-size: clamp(1.7rem, 2.5vw, 2.6rem);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text);
+}
+
+/* ---- Pointer crosshair (fine pointers only; built by control.js) -------- */
+.s-control__xhair {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s var(--ease-out);
+}
+
+.s-control__tile.has-pointer.is-hover .s-control__xhair {
+  opacity: 1;
+}
+
+.s-control__xh {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: rgba(111, 195, 255, 0.22);
+  will-change: transform;
+}
+
+.s-control__xh--h {
+  width: 100%;
+  height: 1px;
+}
+
+.s-control__xh--v {
+  width: 1px;
+  height: 100%;
+}
+
+.s-control__xreticle {
+  --tick: 6px;
+  --tick-color: var(--c-atmo);
+  position: absolute;
+  top: -14px;
+  left: -14px;
+  width: 28px;
+  height: 28px;
+  will-change: transform;
+}
+
+.s-control__xlabel {
+  position: absolute;
+  top: 32px;
+  left: 32px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  color: var(--c-atmo);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Footnote ---------------------------------------------------------------- */
+.s-control .s-control__note {
+  display: flex;
+  gap: 1rem;
+  max-width: 78ch;
+  margin-top: clamp(1.5rem, 4vh, 2.5rem);
+  color: var(--control-faint);
+  line-height: 1.7;
+  text-transform: none;
+  letter-spacing: 0.04em;
+}
+
+.s-control .s-control__note::before {
+  content: '*';
+  color: var(--c-atmo);
+}
+
+/* ---- Layouts ------------------------------------------------------------------ */
+@media (max-width: 719px) {
+  .s-control__ribbon-tag {
+    padding-right: 1rem;
+  }
+
+  .s-control__ribbon-tag-long {
+    display: none;
+  }
+
+  .s-control__ribbon-tag-short {
+    display: inline;
+  }
+
+  .s-control__hold {
+    padding-left: 1rem;
+  }
+
+  .s-control__tile--reasoning { --control-tile-h: 500px; }
+  .s-control__tile--memory { --control-tile-h: 430px; }
+  .s-control__tile--perception { --control-tile-h: 470px; }
+  .s-control__tile--safety { --control-tile-h: 560px; }
+  .s-control__tile--agency { --control-tile-h: 470px; }
+  .s-control__tile.s-control__tile--scale {
+    --control-tile-h: 520px;
+    grid-template-areas:
+      'hud hud'
+      '. .'
+      'counter counter'
+      'body body'
+      'run state';
+  }
+
+  /* In flow on phones: the counter reads as a stat above the copy instead of
+     sitting on top of the constellation. */
+  .s-control__counter {
+    position: static;
+    grid-area: counter;
+    align-items: flex-start;
+    margin-bottom: 1.1rem;
+  }
+}
+
+/* Two-column and phone layouts: a tile stacks HUD · viz · copy · [run button ··· status] */
+@media (max-width: 1199px) {
+  .s-control__tile {
+    grid-template-areas:
+      'hud hud'
+      '. .'
+      'body body'
+      'run state';
+  }
+
+  .s-control .s-control__state {
+    align-self: center;
+    margin-top: 1rem;
+  }
+
+  .s-control__run {
+    justify-self: start;
+    margin-top: 1rem;
+  }
+}
+
+@media (min-width: 720px) {
+  .s-control__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      'r r'
+      'm p'
+      's a'
+      'c c';
+  }
+
+  .s-control__tile--reasoning { grid-area: r; --control-tile-h: 500px; }
+  .s-control__tile--memory { grid-area: m; --control-tile-h: 430px; }
+  .s-control__tile--perception { grid-area: p; --control-tile-h: 430px; }
+  .s-control__tile--safety { grid-area: s; --control-tile-h: 500px; }
+  .s-control__tile--agency { grid-area: a; --control-tile-h: 500px; }
+  .s-control__tile--scale { grid-area: c; --control-tile-h: 400px; }
+}
+
+/* The 12-column bento needs ~1200px before its narrow tiles truncate HUD
+   readouts; below that the two-column layout reads better. */
+@media (min-width: 1200px) {
+  .s-control__grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-rows: repeat(4, var(--control-row));
+    grid-template-areas:
+      'r r r r r r r m m m m m'
+      'r r r r r r r p p p p p'
+      's s s s s a a a a a a a'
+      's s s s s c c c c c c c';
+  }
+
+  .s-control__tile {
+    --control-tile-h: 0px;
+  }
+}
+
+/* ---- Reveal (JS + motion only) --------------------------------------------------- */
+html.js .s-control [data-control-reveal],
+html.js .s-control .s-control__tile {
+  opacity: 0;
+}
+
+html.js .s-control:not(.is-armed) [data-control-reveal],
+html.js .s-control:not(.is-armed) .s-control__tile {
+  animation: s-control-failsafe 0.8s var(--ease-out) 6.5s forwards;
+}
+
+@keyframes s-control-failsafe {
+  to {
+    opacity: 1;
+  }
+}
+
+html.js .s-control.is-static [data-control-reveal],
+html.js .s-control.is-static .s-control__tile {
+  opacity: 1;
+  animation: none;
+}
+
+/* Scanline that sweeps a tile as it powers on */
+.s-control__scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 5;
+  height: 1px;
+  background: var(--c-atmo);
+  box-shadow: 0 0 14px 1px rgba(111, 195, 255, 0.65);
+  pointer-events: none;
+  opacity: 0;
+}
+
+.s-control__char {
+  display: inline-block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.js .s-control [data-control-reveal],
+  html.js .s-control .s-control__tile {
+    opacity: 1;
+    animation: none;
+  }
+
+  .s-control__ticker {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .s-control__ribbon-dot {
+    animation: none;
+  }
+}

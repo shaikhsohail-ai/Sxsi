@@ -9,6 +9,8 @@ import Lenis from 'lenis'
 import { reducedMotion } from './quality.js'
 
 gsap.registerPlugin(ScrollTrigger)
+// Mobile address-bar show/hide would otherwise re-measure every pinned section.
+ScrollTrigger.config({ ignoreMobileResize: true })
 
 /** Shared Lenis instance (null under reduced motion — native scrolling then). */
 export let lenis = null

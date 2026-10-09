@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- SXSI tab mark: the wordmark's squared S above an orbital limb. -->
+  <rect width="64" height="64" rx="14" fill="#000"/>
+  <path fill="#fff" transform="translate(11 11) scale(0.7)" d="M60,0H11.5A11.5,11.5 0 0 0 0,11.5V11.6A11.5,11.5 0 0 0 11.5,23.1H48.5A5.3,5.3 0 0 1 53.8,28.4V28.5A5.3,5.3 0 0 1 48.5,33.8H6.79L0,40H48.5A11.5,11.5 0 0 0 60,28.5V28.4A11.5,11.5 0 0 0 48.5,16.9H11.5A5.3,5.3 0 0 1 6.2,11.6V11.5A5.3,5.3 0 0 1 11.5,6.2H53.21L60,0Z"/>
+  <path d="M5 58C17 49 47 49 59 58" fill="none" stroke="#6fc3ff" stroke-width="3" stroke-linecap="round"/>
+</svg>

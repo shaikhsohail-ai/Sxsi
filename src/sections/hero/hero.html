@@ -1,5 +1,119 @@
-<section id="hero" class="s-hero section" aria-label="SXSI">
-  <div class="container">
-    <p class="eyebrow">SXSI</p>
+<section id="hero" class="s-hero" aria-labelledby="hero-title">
+  <div class="s-hero__frame">
+    <!-- Scene: WebGL canvas over a static CSS rendition (no-JS / no-WebGL fallback) -->
+    <div class="s-hero__stage" aria-hidden="true">
+      <div class="s-hero__fallback">
+        <div class="s-hero__fb-stars"></div>
+        <div class="s-hero__fb-planet">
+          <!-- static neural network of city lights (generated, perspective) -->
+          <svg class="s-hero__fb-lights" viewBox="0 0 1000 220" preserveAspectRatio="xMidYMin meet" focusable="false">
+          <defs><radialGradient id="s-hero-fb-halo"><stop offset="0" stop-color="#1f6bff" stop-opacity=".34"/><stop offset="1" stop-color="#1f6bff" stop-opacity="0"/></radialGradient></defs>
+          <g fill="url(#s-hero-fb-halo)"><ellipse cx="430" cy="26" rx="15" ry="5"/><ellipse cx="532" cy="9" rx="11" ry="3"/><ellipse cx="446" cy="3" rx="14" ry="4"/><ellipse cx="445" cy="18" rx="17" ry="5"/><ellipse cx="433" cy="9" rx="18" ry="6"/><ellipse cx="600" cy="86" rx="40" ry="13"/><ellipse cx="128" cy="43" rx="20" ry="6"/><ellipse cx="581" cy="35" rx="31" ry="10"/></g>
+          <path d="M417 28L413 27M417 28L423 28M413 27L423 28M435 26L441 27M435 26L448 26M448 26L452 26M448 26L441 27M437 24L437 25M435 26L437 24M435 26L437 25M452 26L441 27M548 9L551 10M548 9L553 10M543 8L539 9M548 9L543 8M553 10L551 10M513 9L524 9M513 9L530 10M527 8L524 9M527 8L531 9M539 9L531 9M524 9L531 9M530 10L531 9M524 9L530 10M465 4L454 4M465 4L456 3M441 2L438 2M441 2L430 3M454 4L452 4M454 4L456 3M430 3L425 3M430 3L426 2M426 2L425 3M452 4L456 3M426 2L426 2M426 2L438 2M433 4L446 3M430 3L433 4M455 3L457 3M455 3L456 3M452 4L446 3M446 3L456 3M457 3L456 3M401 18L416 17M401 18L417 19M422 18L416 17M422 18L426 18M471 20L463 19M471 20L455 18M417 19L426 18M422 18L417 19M455 18L464 17M455 18L463 19M464 17L463 19M434 19L426 18M417 19L434 19M463 19L449 20M455 18L449 20M393 8L412 7M393 8L420 8M412 7L420 8M436 7L440 8M436 7L420 8M452 10L449 10M452 10L436 10M413 11L418 9M413 11L436 10M475 8L454 8M475 8L475 9M436 10L449 10M452 10L475 9M418 9L426 9M418 9L432 9M420 8L426 9M418 9L420 8M454 8L440 8M426 9L432 9M440 8L432 9M537 88L555 89M537 88L536 81M609 78L598 77M609 78L582 79M574 88L575 92M574 88L555 89M556 80L536 81M556 80L582 79M575 92L555 89M632 96L654 88M575 92L632 96M654 88L654 80M598 77L582 79M143 43L134 44M143 43L131 44M106 44L103 44M106 44L109 45M109 45L103 44M131 44L134 44M106 44L121 41M121 41L103 44M89 50L80 48M109 45L89 50M109 45L80 48M80 48L103 44M11 97L3 84M11 97L115 67M595 36L575 35M595 36L617 37M605 40L618 39M595 36L605 40M641 35L617 37M641 35L620 32M568 38L570 38M568 38L560 38M566 34L575 35M566 34L547 33M545 37L543 36M545 37L560 38M617 37L618 39M547 33L547 31M543 36L560 38M617 37L620 32M570 38L560 38M566 34L547 31M596 26L607 25M620 32L596 26M614 17L670 19M614 17L701 20M706 4L756 6M3 84L115 67M701 20L670 19M701 20L715 23M154 26L196 31M464 17L495 13M475 9L495 13M641 35L666 32M620 32L666 32M609 78L654 80M670 19L715 23M368 36L425 33M413 27L368 36M261 10L272 7M261 10L208 9M186 7L208 9M620 32L607 25M121 41L196 31M272 7L208 9M423 28L425 33M417 28L425 33M143 43L252 43M134 44L252 43" fill="none" stroke="#6fc3ff" stroke-opacity=".2" stroke-width=".6"/>
+          <g fill="none" stroke="#c7ecff" stroke-linecap="round"><path d="M417 28h0M413 27h0M435 26h0M448 26h0M437 24h0M423 28h0M437 25h0M452 26h0M441 27h0M548 9h0M543 8h0M553 10h0M513 9h0M527 8h0M539 9h0M524 9h0M530 10h0M531 9h0M551 10h0M465 4h0M441 2h0M454 4h0M430 3h0M426 2h0M452 4h0M426 2h0M433 4h0M438 2h0M455 3h0M446 3h0M457 3h0M425 3h0M456 3h0M401 18h0M422 18h0M471 20h0M416 17h0M417 19h0M455 18h0M464 17h0M434 19h0M463 19h0M449 20h0M426 18h0M393 8h0M412 7h0M436 7h0M452 10h0M413 11h0M475 8h0M436 10h0M449 10h0M475 9h0M418 9h0M420 8h0M454 8h0M426 9h0M440 8h0M432 9h0M131 44h0M121 41h0M89 50h0M80 48h0M134 44h0M103 44h0M641 35h0M568 38h0M566 34h0M545 37h0M575 35h0M617 37h0M547 33h0M543 36h0M618 39h0M620 32h0M570 38h0M547 31h0M560 38h0M596 26h0M614 17h0M706 4h0M701 20h0M154 26h0M495 13h0M666 32h0M214 17h0M570 4h0M670 19h0M735 1h0M368 36h0M261 10h0M756 6h0M928 37h0M186 7h0M715 23h0M607 25h0M196 31h0M272 7h0M425 33h0M208 9h0M526 1h0M252 43h0" stroke-width="1" stroke-opacity=".5"/><path d="M609 78h0M574 88h0M556 80h0M575 92h0M632 96h0M536 81h0M654 88h0M555 89h0M598 77h0M582 79h0M143 43h0M106 44h0M109 45h0M11 97h0M595 36h0M605 40h0M3 84h0M115 67h0M654 80h0M786 74h0" stroke-width="1.6" stroke-opacity=".75"/><path d="M537 88h0" stroke-width="2.4"/></g>
+        </svg>
+        </div>
+        <div class="s-hero__fb-sun"></div>
+        <div class="s-hero__fb-streak"></div>
+      </div>
+      <canvas class="s-hero__canvas" data-hero-canvas></canvas>
+      <div class="s-hero__shade"></div>
+      <div class="s-hero__exit" data-hero-exit></div>
+      <!-- Sun tracking reticle (positioned by the scene every frame) -->
+      <div class="s-hero__reticle" data-hero-reticle>
+        <span class="s-hero__reticle-box ticks"></span>
+        <span class="s-hero__reticle-label">
+          <span class="s-hero__reticle-key">Sol</span>
+          <span class="s-hero__reticle-val">EL <span data-hero-sun-el>−0.30°</span></span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Frame HUD (brand flavour; live values are simulated) -->
+    <div class="s-hero__hud s-hero__hud--top" data-hero-hud>
+      <p class="s-hero__hud-item hud">
+        <span class="s-hero__hud-label">Ground track</span>
+        <span class="hud-value">
+          <span class="sr-only">28.4858° N, 80.5444° W</span>
+          <span aria-hidden="true" data-hero-lat>28.4858° N</span>
+          <span class="s-hero__hud-sep" aria-hidden="true">/</span>
+          <span aria-hidden="true" data-hero-lon>80.5444° W</span>
+        </span>
+        <span class="s-hero__sim">Simulated</span>
+      </p>
+      <p class="s-hero__hud-item s-hero__hud-item--end hud">
+        <span class="s-hero__hud-label">Orbit</span>
+        <span class="hud-value">
+          <span class="sr-only">Altitude 408 kilometres, velocity 7.66 kilometres per second</span>
+          <span aria-hidden="true">ALT <span data-hero-alt>408.0</span> KM</span>
+          <span class="s-hero__hud-sep" aria-hidden="true">/</span>
+          <span aria-hidden="true" class="s-hero__hud-vel">VEL <span data-hero-vel>7.66</span> KM/S</span>
+        </span>
+        <span class="s-hero__sim">Simulated</span>
+      </p>
+    </div>
+
+    <!-- Headline -->
+    <div class="s-hero__content">
+      <div class="s-hero__content-inner" data-hero-lift>
+        <div data-hero-depth="0.12">
+          <p class="s-hero__eyebrow eyebrow" data-hero-reveal>Mission 001 <span aria-hidden="true">·</span> First light</p>
+        </div>
+        <h1 id="hero-title" class="s-hero__title h1">
+          <span class="s-hero__line" data-hero-depth="0.08"><span class="s-hero__line-in" data-hero-line>Intelligence,</span></span>
+          <span class="s-hero__line" data-hero-depth="0.04"><span class="s-hero__line-in" data-hero-line>beyond orbit.</span></span>
+        </h1>
+        <p class="s-hero__sub" data-hero-reveal>
+          SXSI is building artificial superintelligence with the ambition of a space program.
+        </p>
+        <div class="s-hero__ctas" data-hero-reveal>
+          <a class="btn btn--solid s-hero__cta" href="#mission">
+            Explore the mission
+            <svg class="btn__arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 12h15M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" />
+            </svg>
+          </a>
+          <a class="btn s-hero__cta" href="#join">Join the mission</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom bar: next launch countdown, scroll cue, mission clock -->
+    <div class="s-hero__bottom" data-hero-bottom>
+      <div class="s-hero__launch ticks" role="group" aria-labelledby="hero-launch-label">
+        <div class="s-hero__launch-head">
+          <span class="status status--live" id="hero-launch-label" data-hero-launch-status>Next launch</span>
+          <span class="s-hero__launch-pad hud" data-hero-pad>LC-01</span>
+        </div>
+        <p class="s-hero__launch-name">
+          Mission <span data-hero-mission>002</span> <span aria-hidden="true">·</span>
+          <span data-hero-mission-name>Ignition</span>
+        </p>
+        <div class="s-hero__clock" aria-hidden="true" data-hero-clock>
+          <span class="s-hero__clock-sign" data-hero-sign>T−</span>
+          <span class="s-hero__clock-unit"><span class="s-hero__clock-num" data-hero-d>00</span><span class="s-hero__clock-cap">Days</span></span>
+          <span class="s-hero__clock-colon">:</span>
+          <span class="s-hero__clock-unit"><span class="s-hero__clock-num" data-hero-h>00</span><span class="s-hero__clock-cap">Hrs</span></span>
+          <span class="s-hero__clock-colon">:</span>
+          <span class="s-hero__clock-unit"><span class="s-hero__clock-num" data-hero-m>00</span><span class="s-hero__clock-cap">Min</span></span>
+          <span class="s-hero__clock-colon">:</span>
+          <span class="s-hero__clock-unit"><span class="s-hero__clock-num" data-hero-s>00</span><span class="s-hero__clock-cap">Sec</span></span>
+        </div>
+        <p class="s-hero__launch-date hud">
+          <time datetime="2027-01-01T00:00:00Z" data-hero-date>01 Jan 2027 · 00:00 UTC</time>
+        </p>
+      </div>
+
+      <a class="s-hero__cue" href="#mission" tabindex="-1" aria-hidden="true">
+        <span class="s-hero__cue-label">Scroll</span>
+        <span class="s-hero__cue-line"></span>
+      </a>
+
+      <p class="s-hero__met hud">
+        <span class="s-hero__hud-label">Mission elapsed</span>
+        <span class="hud-value" data-hero-met>T+ 00:00:00</span>
+        <span class="s-hero__met-note">Since you arrived</span>
+      </p>
+    </div>
   </div>
 </section>

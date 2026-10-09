@@ -1,5 +1,224 @@
-<section id="control" class="s-control section" aria-label="Mission Control">
+<section id="control" class="s-control section" aria-labelledby="control-title">
   <div class="container">
-    <p class="eyebrow">Mission Control</p>
+    <header class="s-control__head">
+      <div class="s-control__head-top">
+        <p class="eyebrow" data-control-reveal>05 — Mission control</p>
+        <p class="s-control__station hud" data-control-reveal>
+          Console MC-01 <span aria-hidden="true">·</span> <span data-control-coords>28.4858° N 80.5444° W</span>
+        </p>
+      </div>
+
+      <h2 id="control-title" class="s-control__title h2">Mission Control</h2>
+
+      <div class="s-control__head-grid">
+        <div class="s-control__intro" data-control-reveal>
+          <p class="s-control__statement"><span>Six systems.</span> <span>One mind.</span> <span>All nominal.</span></p>
+          <p class="body-copy s-control__body">
+            The capabilities SXSI is building toward, flown as the subsystems of a single mission. Inspect any system,
+            then select it to run its simulation again.
+          </p>
+        </div>
+
+        <div class="s-control__clock" data-control-reveal>
+          <p class="hud s-control__label">Mission clock <span aria-hidden="true">·</span> UTC</p>
+          <p class="s-control__clock-time" data-control-utc>--:--:--</p>
+          <dl class="s-control__clock-meta hud">
+            <div><dt>Date</dt><dd class="hud-value" data-control-date>--- ----</dd></div>
+            <div><dt>Day</dt><dd class="hud-value" data-control-doy>---</dd></div>
+            <div><dt>MET</dt><dd class="hud-value" data-control-met>T+ 00:00:00</dd></div>
+          </dl>
+          <div class="s-control__day" aria-hidden="true" data-control-day>
+            <div class="s-control__day-track"><span class="s-control__day-mark"></span></div>
+            <div class="s-control__day-scale"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+          </div>
+        </div>
+
+        <div class="s-control__systems" data-control-reveal>
+          <p class="hud s-control__label">Systems online</p>
+          <p class="s-control__systems-count">
+            <span data-control-online>06</span><span class="s-control__systems-of">/06</span>
+          </p>
+          <ol class="s-control__syslist" role="list" aria-label="Systems">
+            <li class="s-control__sysrow is-on" data-control-lamp="reasoning">
+              <a href="#control-sys-reasoning"><span class="s-control__sysrow-i" aria-hidden="true">01</span><span class="s-control__sysrow-n">Reasoning</span><span class="s-control__sysrow-lamp" aria-hidden="true"></span></a>
+            </li>
+            <li class="s-control__sysrow is-on" data-control-lamp="memory">
+              <a href="#control-sys-memory"><span class="s-control__sysrow-i" aria-hidden="true">02</span><span class="s-control__sysrow-n">Memory</span><span class="s-control__sysrow-lamp" aria-hidden="true"></span></a>
+            </li>
+            <li class="s-control__sysrow is-on" data-control-lamp="perception">
+              <a href="#control-sys-perception"><span class="s-control__sysrow-i" aria-hidden="true">03</span><span class="s-control__sysrow-n">Perception</span><span class="s-control__sysrow-lamp" aria-hidden="true"></span></a>
+            </li>
+            <li class="s-control__sysrow is-on" data-control-lamp="safety">
+              <a href="#control-sys-safety"><span class="s-control__sysrow-i" aria-hidden="true">04</span><span class="s-control__sysrow-n">Safety</span><span class="s-control__sysrow-lamp" aria-hidden="true"></span></a>
+            </li>
+            <li class="s-control__sysrow is-on" data-control-lamp="agency">
+              <a href="#control-sys-agency"><span class="s-control__sysrow-i" aria-hidden="true">05</span><span class="s-control__sysrow-n">Agency</span><span class="s-control__sysrow-lamp" aria-hidden="true"></span></a>
+            </li>
+            <li class="s-control__sysrow is-on" data-control-lamp="scale">
+              <a href="#control-sys-scale"><span class="s-control__sysrow-i" aria-hidden="true">06</span><span class="s-control__sysrow-n">Scale</span><span class="s-control__sysrow-lamp" aria-hidden="true"></span></a>
+            </li>
+          </ol>
+          <p class="status s-control__systems-status" data-control-systems-status>All systems nominal</p>
+        </div>
+      </div>
+    </header>
+  </div>
+
+  <!-- Telemetry ribbon. Every value is simulated and says so. -->
+  <div class="s-control__ribbon" data-control-ribbon role="group" aria-label="Simulated telemetry">
+    <p class="s-control__ribbon-tag hud" data-control-reveal>
+      <span class="s-control__ribbon-dot" aria-hidden="true"></span>
+      <span class="s-control__ribbon-tag-long">Simulated telemetry</span><span class="s-control__ribbon-tag-short" aria-hidden="true">Sim</span>
+    </p>
+    <div class="s-control__ticker" data-control-ticker>
+      <ul class="s-control__track" role="list" data-control-track>
+        <li class="s-control__tlm"><span class="s-control__tlm-k">Tokens/s</span> <span class="hud-value" data-tlm="tokens">48 213</span></li>
+        <li class="s-control__tlm"><span class="s-control__tlm-k">Core temp</span> <span class="hud-value" data-tlm="temp">2.74 K</span></li>
+        <li class="s-control__tlm"><span class="s-control__tlm-k">Uptime</span> <span class="hud-value" data-tlm="uptime">00:00:00</span></li>
+        <li class="s-control__tlm"><span class="s-control__tlm-k">Latency</span> <span class="hud-value" data-tlm="latency">018 ms</span></li>
+        <li class="s-control__tlm"><span class="s-control__tlm-k">Alignment</span> <span class="hud-value" data-tlm="align">1.000</span></li>
+        <li class="s-control__tlm"><span class="s-control__tlm-k">Orbit</span> <span class="hud-value" data-tlm="orbit">412.6 km</span></li>
+        <li class="s-control__tlm"><span class="s-control__tlm-k">Signal</span> <span class="hud-value" data-tlm="signal">−71.4 dBm</span></li>
+        <li class="s-control__tlm"><span class="s-control__tlm-k">Nodes</span> <span class="hud-value" data-tlm="nodes">000 064</span></li>
+        <li class="s-control__tlm"><span class="s-control__tlm-k">Δv reserve</span> <span class="hud-value" data-tlm="dv">98.2 %</span></li>
+      </ul>
+    </div>
+    <button class="s-control__hold hud" type="button" aria-pressed="false" data-control-hold hidden>
+      <span class="s-control__hold-icon" aria-hidden="true"></span>
+      <span>Hold</span><span class="sr-only"> console animation</span>
+    </button>
+  </div>
+
+  <div class="container">
+    <div class="s-control__grid" data-control-grid>
+      <!-- 01 · REASONING -->
+      <article id="control-sys-reasoning" class="s-control__tile s-control__tile--reasoning" data-control-tile="reasoning" aria-labelledby="control-t-reasoning">
+        <canvas class="s-control__canvas" aria-hidden="true"></canvas>
+        <div class="s-control__shade" aria-hidden="true"></div>
+        <div class="s-control__frame ticks" aria-hidden="true"></div>
+        <div class="s-control__hud">
+          <p class="s-control__sys hud" data-control-decode>SYS-01 / Trajectory search</p>
+          <p class="s-control__readout hud">Simulated <span aria-hidden="true">·</span> <span data-control-readout>Paths 0256 · Pruned 99.2%</span></p>
+        </div>
+        <p class="s-control__state status" data-control-state>Converged</p>
+        <div class="s-control__body">
+          <h3 id="control-t-reasoning" class="s-control__name h3">Reasoning</h3>
+          <p class="s-control__desc">Search wide, prune hard, and commit to the one path that reaches orbit.</p>
+        </div>
+        <button class="s-control__run" type="button" data-control-run hidden>
+          <svg class="s-control__run-icon" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2.2 6.6A3.9 3.9 0 1 0 3.4 3.2M3.2 1v2.4h2.4" /></svg>
+          <span>Re-plan</span><span class="sr-only"> — run the reasoning simulation again</span>
+        </button>
+      </article>
+
+      <!-- 02 · MEMORY -->
+      <article id="control-sys-memory" class="s-control__tile s-control__tile--memory" data-control-tile="memory" aria-labelledby="control-t-memory">
+        <canvas class="s-control__canvas" aria-hidden="true"></canvas>
+        <div class="s-control__shade" aria-hidden="true"></div>
+        <div class="s-control__frame ticks" aria-hidden="true"></div>
+        <div class="s-control__hud">
+          <p class="s-control__sys hud" data-control-decode>SYS-02 / Orbital memory</p>
+          <p class="s-control__readout hud">Simulated <span aria-hidden="true">·</span> <span data-control-readout>Held 18 · Drift 04</span></p>
+        </div>
+        <p class="s-control__state status" data-control-state>Holding</p>
+        <div class="s-control__body">
+          <h3 id="control-t-memory" class="s-control__name h3">Memory</h3>
+          <p class="s-control__desc">Capture what matters and hold it in stable orbit, ready for recall.</p>
+        </div>
+        <button class="s-control__run" type="button" data-control-run hidden>
+          <svg class="s-control__run-icon" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M6 1.5v9M1.5 6h9" /></svg>
+          <span>Inject</span><span class="sr-only"> — send new nodes into the memory simulation</span>
+        </button>
+      </article>
+
+      <!-- 03 · PERCEPTION -->
+      <article id="control-sys-perception" class="s-control__tile s-control__tile--perception" data-control-tile="perception" aria-labelledby="control-t-perception">
+        <canvas class="s-control__canvas" aria-hidden="true"></canvas>
+        <div class="s-control__shade" aria-hidden="true"></div>
+        <div class="s-control__frame ticks" aria-hidden="true"></div>
+        <div class="s-control__hud">
+          <p class="s-control__sys hud" data-control-decode>SYS-03 / Sensor fusion</p>
+          <p class="s-control__readout hud">Simulated <span aria-hidden="true">·</span> <span data-control-readout>Contacts 09 · Resolved 07</span></p>
+        </div>
+        <p class="s-control__state status" data-control-state>Scanning</p>
+        <div class="s-control__body">
+          <h3 id="control-t-perception" class="s-control__name h3">Perception</h3>
+          <p class="s-control__desc">Sweep every channel — text, image, sound, signal — and resolve each contact.</p>
+        </div>
+        <button class="s-control__run" type="button" data-control-run hidden>
+          <svg class="s-control__run-icon" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="1.4" /><circle cx="6" cy="6" r="4.4" /></svg>
+          <span>Ping</span><span class="sr-only"> — send a ping across the perception simulation</span>
+        </button>
+      </article>
+
+      <!-- 04 · SAFETY -->
+      <article id="control-sys-safety" class="s-control__tile s-control__tile--safety" data-control-tile="safety" aria-labelledby="control-t-safety">
+        <canvas class="s-control__canvas" aria-hidden="true"></canvas>
+        <div class="s-control__shade" aria-hidden="true"></div>
+        <div class="s-control__frame ticks" aria-hidden="true"></div>
+        <div class="s-control__hud">
+          <p class="s-control__sys hud" data-control-decode>SYS-04 / Launch abort system</p>
+          <p class="s-control__readout hud">Simulated <span aria-hidden="true">·</span> <span data-control-readout>Containment 100.0% · Align 1.000</span></p>
+        </div>
+        <p class="s-control__state status" data-control-state>Contained</p>
+        <div class="s-control__body">
+          <h3 id="control-t-safety" class="s-control__name h3">Safety</h3>
+          <p class="s-control__desc">A launch abort system for intelligence. Contained by default. Aligned by&nbsp;design.</p>
+        </div>
+        <button class="s-control__run s-control__run--ignite" type="button" data-control-run hidden>
+          <svg class="s-control__run-icon" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M6 1.4 10.8 10H1.2Z M6 4.6v2.6" /></svg>
+          <span>Abort test</span><span class="sr-only"> — run a simulated abort test</span>
+        </button>
+      </article>
+
+      <!-- 05 · AGENCY -->
+      <article id="control-sys-agency" class="s-control__tile s-control__tile--agency" data-control-tile="agency" aria-labelledby="control-t-agency">
+        <canvas class="s-control__canvas" aria-hidden="true"></canvas>
+        <div class="s-control__shade" aria-hidden="true"></div>
+        <div class="s-control__frame ticks" aria-hidden="true"></div>
+        <div class="s-control__hud">
+          <p class="s-control__sys hud" data-control-decode>SYS-05 / Autonomous guidance</p>
+          <p class="s-control__readout hud">Simulated <span aria-hidden="true">·</span> <span data-control-readout>Range 0412 m · Vc 0.84 m/s</span></p>
+        </div>
+        <p class="s-control__state status" data-control-state>Approach</p>
+        <div class="s-control__body">
+          <h3 id="control-t-agency" class="s-control__name h3">Agency</h3>
+          <p class="s-control__desc">Plan, act and correct course around every obstacle until the docking is complete.</p>
+        </div>
+        <button class="s-control__run" type="button" data-control-run hidden>
+          <svg class="s-control__run-icon" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M1.5 6h8M6.8 3.2 9.6 6 6.8 8.8" /></svg>
+          <span>New approach</span><span class="sr-only"> — start a new docking approach in the agency simulation</span>
+        </button>
+      </article>
+
+      <!-- 06 · SCALE -->
+      <article id="control-sys-scale" class="s-control__tile s-control__tile--scale" data-control-tile="scale" aria-labelledby="control-t-scale">
+        <canvas class="s-control__canvas" aria-hidden="true"></canvas>
+        <div class="s-control__shade" aria-hidden="true"></div>
+        <div class="s-control__frame ticks" aria-hidden="true"></div>
+        <div class="s-control__hud">
+          <p class="s-control__sys hud" data-control-decode>SYS-06 / Constellation</p>
+          <p class="s-control__readout hud">Simulated <span aria-hidden="true">·</span> <span data-control-readout>Growth +3.2/s</span></p>
+        </div>
+        <p class="s-control__state status" data-control-state>Expanding</p>
+        <div class="s-control__body">
+          <h3 id="control-t-scale" class="s-control__name h3">Scale</h3>
+          <p class="s-control__desc">One node at a time, until intelligence spans the sky.</p>
+        </div>
+        <div class="s-control__counter" aria-hidden="true">
+          <span class="s-control__counter-k hud">Nodes online <span class="s-control__counter-sim">· Sim</span></span>
+          <span class="s-control__counter-v" data-control-counter>000 064</span>
+        </div>
+        <button class="s-control__run" type="button" data-control-run hidden>
+          <svg class="s-control__run-icon" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="1.6" /><path d="M6 1v1.8M6 9.2V11M1 6h1.8M9.2 6H11" /></svg>
+          <span>Seed</span><span class="sr-only"> — seed new nodes in the constellation simulation</span>
+        </button>
+      </article>
+    </div>
+
+    <p class="s-control__note hud" data-control-reveal>
+      All telemetry, readouts and visualisations on this console are simulated. The systems shown describe what SXSI
+      is building toward — not shipped products.
+    </p>
   </div>
 </section>

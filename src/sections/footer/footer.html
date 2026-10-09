@@ -1,3 +1,109 @@
-<footer class="s-footer" role="contentinfo">
-  <div class="container"><p class="hud">© 2026 SXSI</p></div>
+<footer class="s-footer" aria-labelledby="footer-title" data-footer>
+  <div class="s-footer__top container">
+    <p class="s-footer__eyebrow eyebrow">End of transmission</p>
+    <a class="s-footer__return btn btn--sm" href="#hero" data-footer-return>
+      Return to orbit
+      <svg class="btn__arrow s-footer__return-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 20V5M6 11l6-6 6 6" stroke="currentColor" stroke-width="1.6" />
+      </svg>
+    </a>
+  </div>
+
+  <div class="s-footer__grid container">
+    <div class="s-footer__brand">
+      <h2 id="footer-title" class="s-footer__title h3">Super intelligence.<br />Launched.</h2>
+      <p class="s-footer__blurb">
+        SXSI is an independent artificial intelligence company, building with the ambition of a space program.
+      </p>
+    </div>
+
+    <nav class="s-footer__nav" aria-label="Footer">
+      <div class="s-footer__col">
+        <p class="s-footer__label" id="footer-explore">Explore</p>
+        <ul class="s-footer__links" role="list" aria-labelledby="footer-explore">
+          <li><a class="s-footer__link" href="#mission">Mission</a></li>
+          <li><a class="s-footer__link" href="#ascent">Ascent</a></li>
+          <li><a class="s-footer__link" href="#fleet">Fleet</a></li>
+          <li><a class="s-footer__link" href="#control">Mission control</a></li>
+        </ul>
+      </div>
+      <div class="s-footer__col">
+        <p class="s-footer__label" id="footer-launch">Launch</p>
+        <ul class="s-footer__links" role="list" aria-labelledby="footer-launch">
+          <li><a class="s-footer__link" href="#manifest">Manifest</a></li>
+          <li><a class="s-footer__link" href="#terminal">Flight computer</a></li>
+          <li><a class="s-footer__link" href="#join">Join</a></li>
+        </ul>
+      </div>
+      <div class="s-footer__col">
+        <p class="s-footer__label" id="footer-contact">Contact</p>
+        <ul class="s-footer__links" role="list" aria-labelledby="footer-contact" data-footer-contact>
+          <li><a class="s-footer__link s-footer__link--mail" href="mailto:hello@sxsi.ai" data-footer-mail>hello@sxsi.ai</a></li>
+        </ul>
+      </div>
+    </nav>
+  </div>
+
+  <div class="s-footer__telemetry container">
+    <dl class="s-footer__tm">
+      <div class="s-footer__tm-item">
+        <dt>Pad</dt>
+        <dd data-footer-coords>28.4858° N 80.5444° W</dd>
+      </div>
+      <div class="s-footer__tm-item s-footer__tm-item--utc">
+        <dt>UTC</dt>
+        <dd><span data-footer-utc>--:--:--</span></dd>
+      </div>
+      <div class="s-footer__tm-item">
+        <dt>Build</dt>
+        <dd>v1.0</dd>
+      </div>
+      <div class="s-footer__tm-item s-footer__tm-item--status">
+        <dt class="sr-only">Status</dt>
+        <dd class="status">All systems nominal</dd>
+      </div>
+    </dl>
+  </div>
+
+  <!-- Monumental sign-off: the wordmark, gutter to gutter, rising from behind
+       an atmospheric horizon. footer.js adds the light layers (a glint that
+       sweeps across on arrival, and a low "sun" on the horizon that follows the
+       pointer and lights the letters from below). -->
+  <div class="s-footer__mark" data-footer-mark>
+    <div class="s-footer__glow" aria-hidden="true" data-footer-glow></div>
+    <svg class="s-footer__mark-svg" viewBox="0 0 211.2 40" role="img" aria-label="SXSI" focusable="false">
+      <defs>
+        <!-- white crown, cooling into atmospheric blue toward the horizon -->
+        <linearGradient id="s-footer-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffffff" />
+          <stop offset="0.46" stop-color="#f4f6fb" />
+          <stop offset="0.8" stop-color="#a9cdf2" stop-opacity="0.66" />
+          <stop offset="1" stop-color="#4f9dff" stop-opacity="0.3" />
+        </linearGradient>
+        <linearGradient id="s-footer-glint" gradientUnits="userSpaceOnUse" x1="-90" y1="0" x2="-30" y2="40" data-footer-glint>
+          <stop offset="0" stop-color="#c7ecff" stop-opacity="0" />
+          <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.9" />
+          <stop offset="1" stop-color="#c7ecff" stop-opacity="0" />
+        </linearGradient>
+        <radialGradient id="s-footer-light" gradientUnits="userSpaceOnUse" cx="105.6" cy="47" r="58" data-footer-light>
+          <stop offset="0" stop-color="#ffffff" stop-opacity="0.95" />
+          <stop offset="0.3" stop-color="#c7ecff" stop-opacity="0.55" />
+          <stop offset="0.65" stop-color="#6fc3ff" stop-opacity="0.12" />
+          <stop offset="1" stop-color="#6fc3ff" stop-opacity="0" />
+        </radialGradient>
+      </defs>
+      <g data-footer-letter><path fill="url(#s-footer-fill)" d="M60,0H11.5A11.5,11.5 0 0 0 0,11.5V11.6A11.5,11.5 0 0 0 11.5,23.1H48.5A5.3,5.3 0 0 1 53.8,28.4V28.5A5.3,5.3 0 0 1 48.5,33.8H6.79L0,40H48.5A11.5,11.5 0 0 0 60,28.5V28.4A11.5,11.5 0 0 0 48.5,16.9H11.5A5.3,5.3 0 0 1 6.2,11.6V11.5A5.3,5.3 0 0 1 11.5,6.2H53.21L60,0Z" /></g>
+      <g data-footer-letter><path fill="url(#s-footer-fill)" d="M69.5,0L79.7,0L123.5,40L113.3,40ZM113.3,0L123.5,0L102.9,18.81L97.8,14.15ZM90.1,21.19L95.2,25.84L79.7,40L69.5,40Z" /></g>
+      <g data-footer-letter><path fill="url(#s-footer-fill)" d="M193,0H144.5A11.5,11.5 0 0 0 133,11.5V11.6A11.5,11.5 0 0 0 144.5,23.1H181.5A5.3,5.3 0 0 1 186.8,28.4V28.5A5.3,5.3 0 0 1 181.5,33.8H139.79L133,40H181.5A11.5,11.5 0 0 0 193,28.5V28.4A11.5,11.5 0 0 0 181.5,16.9H144.5A5.3,5.3 0 0 1 139.2,11.6V11.5A5.3,5.3 0 0 1 144.5,6.2H186.21L193,0Z" /></g>
+      <g data-footer-letter><path fill="url(#s-footer-fill)" d="M205,0H211.2V40H205Z" /></g>
+    </svg>
+    <div class="s-footer__horizon" aria-hidden="true" data-footer-horizon>
+      <span class="s-footer__sun" data-footer-sun></span>
+    </div>
+  </div>
+
+  <div class="s-footer__legal container">
+    <p class="s-footer__copy">© <span data-footer-year>2026</span> SXSI</p>
+    <p class="s-footer__disclaimer">SXSI is an independent company and is not affiliated with Space Exploration Technologies Corp.</p>
+  </div>
 </footer>
